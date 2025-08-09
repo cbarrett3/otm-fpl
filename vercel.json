@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+  "installCommand": "cd web && npm ci --no-audit --no-fund",
+  "buildCommand": "cd web && npm run build",
+  "outputDirectory": "web/.next",
+  "env": {
+    "NEXT_TELEMETRY_DISABLED": "1"
+  }
+}
+
+
