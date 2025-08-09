@@ -2,6 +2,7 @@
 "use client"
 
 import * as React from 'react'
+import Link from 'next/link'
 import type { AppBundle, AppPlayer } from '@/lib/types'
 import { ImageWithFallback } from '@/components/ui/image-with-fallback'
 
@@ -35,8 +36,14 @@ export default function PredictedPage() {
   return (
     <div className="min-h-screen p-6 sm:p-10">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Predicted GW1 Lineups</h1>
-        <a className="text-sm underline" href="/compare">Back to Compare</a>
+        <h1 className="text-2xl font-semibold">
+          <Link href="/" prefetch className="text-yellow-400 -skew-x-6 tracking-wider" aria-label="Go to Home" style={{ touchAction: 'manipulation' }}>
+            OTM&nbsp;FPL
+          </Link>
+        </h1>
+        <Link href="/compare" prefetch className="rounded-full h-8 px-3 border border-black/10 dark:border-white/15 hover:bg-white/10 text-yellow-400" aria-label="Back">
+          BACK
+        </Link>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {teams.map(({ teamId, teamName, players }) => {
