@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Footer } from "@/components/footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +17,8 @@ export const metadata: Metadata = {
   title: "OTM FPL Draftkit",
   description: "A stripped‑back draft‑kit. Compare players, craft your board, export when you’re ready. Shareable links to continue progress on other devices.",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
     apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
@@ -37,7 +38,10 @@ export default function RootLayout({
             try { fetch('/api/app-bundle', { cache: 'force-cache' }); } catch(e) {}
           })();
         ` }} />
-        {children}
+        <div className="min-h-screen flex flex-col">
+          <div className="flex-1">{children}</div>
+          <Footer />
+        </div>
       </body>
     </html>
   );

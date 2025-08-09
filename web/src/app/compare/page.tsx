@@ -264,7 +264,9 @@ export default function ComparePage() {
     getBundle().then(setBundle).catch(console.error)
   }, [])
   // Warm rankings route so top-right button is instant
-  useEffect(() => { try { router.prefetch('/rankings') } catch {} }, [router])
+  useEffect(() => {
+    try { router.prefetch('/rankings'); router.prefetch('/') } catch {}
+  }, [router])
 
   // Inbound share link handling (hash r=...) – offer to replace or merge
   useEffect(() => {
@@ -477,12 +479,13 @@ export default function ComparePage() {
 
   return (
     <div className="min-h-screen p-6 sm:p-10">
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex items-center justify-between gap-2 relative z-30">
         <h1 className="text-2xl font-semibold">
           <Link
             href="/"
             prefetch
             aria-label="Go to Home"
+            onClick={(e) => { e.preventDefault(); router.push('/') }}
             className="cursor-pointer inline-block text-yellow-400 -skew-x-6 tracking-wider"
             style={{ touchAction: 'manipulation' }}
           >
