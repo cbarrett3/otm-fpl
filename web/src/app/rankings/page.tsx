@@ -9,6 +9,7 @@ import { ImageWithFallback } from '@/components/ui/image-with-fallback'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import LZString from 'lz-string'
 
 // legacy fetch left here previously; switched to shared cache via getBundle
@@ -58,6 +59,7 @@ function computeConsensusOrder(players: AppPlayer[]): number[] {
 }
 
 export default function RankingsPage() {
+  const router = useRouter()
   const [bundle, setBundle] = useState<AppBundle | null>(null)
   const rankCookie = useCookie('otm_ranking')
   const initialOrder = useMemo(() => parseRanking(rankCookie).order, [rankCookie])
@@ -68,6 +70,8 @@ export default function RankingsPage() {
   // drag state removed; we will use simple up/down controls
 
   useEffect(() => { getBundle().then(setBundle).catch(console.error) }, [])
+  // Warm the compare route so BACK navigates instantly
+  useEffect(() => { try { router.prefetch('/compare') } catch {} }, [router])
   useEffect(() => { setOrder(initialOrder) }, [initialOrder])
   // Seed a default order (Fantrax → DraftSociety → last-season) if user has no ranking yet
   useEffect(() => {
@@ -206,8 +210,8 @@ export default function RankingsPage() {
             >
               Share/Sync
             </Button>
-            <Button asChild variant="ghost" className="rounded-full h-8 px-3 min-w-[132px] justify-center text-yellow-400">
-              <Link href="/compare" prefetch aria-label="Back" style={{ touchAction: 'manipulation' }}>BACK</Link>
+            <Button variant="ghost" className="rounded-full h-8 px-3 min-w-[132px] justify-center text-yellow-400" aria-label="Back" onClick={() => router.push('/compare')}>
+              BACK
             </Button>
           </div>
         </div>
@@ -237,8 +241,8 @@ export default function RankingsPage() {
           >
             Share/Sync
           </Button>
-          <Button asChild variant="ghost" className="rounded-xl h-12 text-base col-span-2 text-yellow-400">
-            <Link href="/compare" prefetch aria-label="Back" style={{ touchAction: 'manipulation' }}>BACK</Link>
+          <Button variant="ghost" className="rounded-xl h-12 text-base col-span-2 text-yellow-400" aria-label="Back" onClick={() => router.push('/compare')}>
+            BACK
           </Button>
           <Button
             className="rounded-xl h-12 text-base col-span-2"
