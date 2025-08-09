@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FPL Draft Wizard",
-  description: "Compare players, prefer winners, and build cookie-saved draft rankings.",
+  title: "OTM FPL Draftkit",
+  description: "A stripped‑back draft‑kit. Compare players, craft your board, export when you’re ready. Shareable links to continue progress on other devices.",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",

@@ -1,6 +1,6 @@
 {
-  "name": "FPL Draft Wizard",
-  "short_name": "FPL Wizard",
+  "name": "OTP FPL Draftkit",
+  "short_name": "OTP FPL Draftkit",
   "icons": [
     { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
     { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }

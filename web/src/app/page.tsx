@@ -4,8 +4,8 @@ export default function Home() {
   return (
     <div className="min-h-screen p-8 sm:p-12">
       <main className="mx-auto max-w-3xl">
-        <h1 className="text-4xl sm:text-5xl font-semibold text-yellow-400 -skew-x-6 tracking-wider mb-6">OTM&nbsp;FPL</h1>
-        <p className="text-black/70 dark:text-white/70 mb-10 max-w-2xl">A stripped‑back draft helper. Compare players, craft your board, export when you’re ready.</p>
+        <h1 className="text-4xl sm:text-5xl font-semibold text-yellow-400 -skew-x-6 tracking-wider mb-6">OTM&nbsp;FPL&nbsp;Draftkit</h1>
+        <p className="text-black/70 dark:text-white/70 mb-10 max-w-2xl">A stripped‑back draft‑kit. Compare players, craft your board, export when you’re ready.</p>
 
         <ul className="divide-y divide-white/10 border border-white/10 rounded-xl overflow-hidden">
           <li>

@@ -10,6 +10,7 @@ import type { AppBundle, AppPlayer } from '@/lib/types'
 import { getBundle } from '@/lib/bundle-store'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 // brand removed per request – simple wordmark instead
 import LZString from 'lz-string'
 
@@ -246,6 +247,7 @@ function PlayerHeader({ p }: { p: AppPlayer }) {
 }
 
 export default function ComparePage() {
+  const router = useRouter()
   const [bundle, setBundle] = useState<AppBundle | null>(readBundleFromWindow())
   const [rankCookie, setRankCookie] = useCookie('otm_ranking')
   const ranking = useMemo(() => parseRanking(rankCookie), [rankCookie])
@@ -261,6 +263,8 @@ export default function ComparePage() {
   useEffect(() => {
     getBundle().then(setBundle).catch(console.error)
   }, [])
+  // Warm rankings route so top-right button is instant
+  useEffect(() => { try { router.prefetch('/rankings') } catch {} }, [router])
 
   // Inbound share link handling (hash r=...) – offer to replace or merge
   useEffect(() => {
@@ -489,8 +493,8 @@ export default function ComparePage() {
           {/* Desktop filters – moved to full-width row below */}
           {/* Mobile filter button */}
           <Button className="md:hidden h-8 px-3" variant="ghost" onClick={() => setFiltersOpen(true)}>Filter</Button>
-          <Button asChild variant="ghost" className="h-8 px-3">
-            <Link href="/rankings" prefetch aria-label="View your rankings">View Rankings</Link>
+          <Button variant="ghost" className="h-8 px-3" aria-label="View your rankings" onClick={() => router.push('/rankings')}>
+            View Rankings
           </Button>
         </div>
       </div>
