@@ -217,7 +217,7 @@ export default function RankingsPage() {
         </div>
         {/* Mobile wordmark on the top-left */}
         <div className="md:hidden flex items-center justify-start">
-          <h1 className="text-xl font-semibold italic">
+          <h1 className="text-2xl font-semibold italic">
             <Link href="/" prefetch className="text-yellow-400 -skew-x-6 tracking-wider" aria-label="Go to Home" style={{ touchAction: 'manipulation' }}>
               OTM&nbsp;FPL
             </Link>

@@ -3,6 +3,8 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
 import type { AppBundle, AppPlayer } from '@/lib/types'
 import { getBundle } from '@/lib/bundle-store'
 import { ImageWithFallback } from '@/components/ui/image-with-fallback'
@@ -13,6 +15,7 @@ const POS_ORDER: Record<string, number> = { GKP: 0, DEF: 1, MID: 2, FWD: 3 }
 
 export default function PredictedPage() {
   const [bundle, setBundle] = React.useState<AppBundle | null>(null)
+  const router = useRouter()
   React.useEffect(() => { getBundle().then(setBundle).catch(console.error) }, [])
   if (!bundle) return <div className="p-8">Loading…</div>
 
@@ -32,15 +35,22 @@ export default function PredictedPage() {
 
   return (
     <div className="min-h-screen p-6 sm:p-10">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">
-          <Link href="/" prefetch className="text-yellow-400 -skew-x-6 tracking-wider" aria-label="Go to Home" style={{ touchAction: 'manipulation' }}>
-            OTM&nbsp;FPL
-          </Link>
-        </h1>
-        <Link href="/compare" prefetch className="rounded-full h-8 px-3 border border-black/10 dark:border-white/15 hover:bg-white/10 text-yellow-400" aria-label="Back">
-          BACK
-        </Link>
+      <div className="mb-6 relative z-20">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <h1 className="text-2xl font-semibold italic">
+            <Link href="/" prefetch className="text-yellow-400 -skew-x-6 tracking-wider" aria-label="Go to Home" style={{ touchAction: 'manipulation' }}>
+              OTM&nbsp;FPL
+            </Link>
+          </h1>
+          <Button
+            variant="ghost"
+            className="rounded-full h-8 px-3 min-w-[132px] justify-center text-yellow-400"
+            aria-label="Back"
+            onClick={() => router.push('/compare')}
+          >
+            BACK
+          </Button>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {teams.map(({ teamId, teamName, players }) => {
