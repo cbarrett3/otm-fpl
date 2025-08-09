@@ -1,0 +1,16 @@
+<svg width="160" height="200" viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Player silhouette">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#1f2937"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="200" rx="12" fill="url(#g)"/>
+  <g fill="#ffffff" opacity="0.9">
+    <circle cx="80" cy="70" r="34"/>
+    <path d="M30 168c0-28 22-50 50-50s50 22 50 50v12H30v-12z"/>
+  </g>
+</svg>
+
+
+

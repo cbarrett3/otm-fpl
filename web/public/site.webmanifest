@@ -1,0 +1,12 @@
+{
+  "name": "FPL Draft Wizard",
+  "short_name": "FPL Wizard",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#111111",
+  "background_color": "#111111"
+}

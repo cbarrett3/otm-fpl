@@ -4,24 +4,33 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:turbo": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "data:enrich:last-season": "tsx scripts/enrich-last-season.ts",
+    "data:predicted:gw1": "tsx scripts/fetch-predicted-gw1.ts",
+    "data:apply:gw1-manual": "tsx scripts/apply-gw1-manual.ts",
+    "data:enrich:highlights": "tsx scripts/enrich-highlights.ts",
+    "data:apply:top50": "tsx scripts/apply-draftsociety-top50.ts",
+    "data:apply:fantrax": "tsx scripts/apply-fantrax-projections.ts"
   },
   "dependencies": {
+    "next": "15.4.6",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "next": "15.4.6"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "tsx": "^4.20.3",
+    "typescript": "^5",
+    "zod": "^3.25.76"
   }
 }

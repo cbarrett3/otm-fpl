@@ -1,0 +1,4 @@
+{"$comment":"This file proxies the data/app_bundle.json at repo root for client fetches. Replace during deployment with proper static serving.","note":"See server config to serve from /data in production."}
+
+
+
