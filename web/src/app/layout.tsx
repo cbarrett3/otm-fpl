@@ -30,9 +30,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* Preload app bundle in the background for faster route changes */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            try { fetch('/api/app-bundle', { cache: 'force-cache' }); } catch(e) {}
+          })();
+        ` }} />
         {children}
       </body>
     </html>

@@ -4,17 +4,14 @@
 import * as React from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import type { AppBundle, AppPlayer } from '@/lib/types'
+import { getBundle } from '@/lib/bundle-store'
 import { ImageWithFallback } from '@/components/ui/image-with-fallback'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import LZString from 'lz-string'
 
-async function fetchBundle(): Promise<AppBundle> {
-  const res = await fetch('/api/app-bundle', { cache: 'no-store' })
-  if (!res.ok) throw new Error('Failed to load bundle')
-  return res.json()
-}
+// legacy fetch left here previously; switched to shared cache via getBundle
 
 function useCookie(name: string) {
   const [value, setValue] = useState<string | null>(null)
@@ -70,7 +67,7 @@ export default function RankingsPage() {
   const [dragOverId, setDragOverId] = useState<number | null>(null)
   // drag state removed; we will use simple up/down controls
 
-  useEffect(() => { fetchBundle().then(setBundle).catch(console.error) }, [])
+  useEffect(() => { getBundle().then(setBundle).catch(console.error) }, [])
   useEffect(() => { setOrder(initialOrder) }, [initialOrder])
   // Seed a default order (Fantrax → DraftSociety → last-season) if user has no ranking yet
   useEffect(() => {

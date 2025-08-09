@@ -4,19 +4,16 @@
 import * as React from 'react'
 import Link from 'next/link'
 import type { AppBundle, AppPlayer } from '@/lib/types'
+import { getBundle } from '@/lib/bundle-store'
 import { ImageWithFallback } from '@/components/ui/image-with-fallback'
 
-async function fetchBundle(): Promise<AppBundle> {
-  const res = await fetch('/api/app-bundle', { cache: 'no-store' })
-  if (!res.ok) throw new Error('Failed to load bundle')
-  return res.json()
-}
+// Use shared cached bundle loader
 
 const POS_ORDER: Record<string, number> = { GKP: 0, DEF: 1, MID: 2, FWD: 3 }
 
 export default function PredictedPage() {
   const [bundle, setBundle] = React.useState<AppBundle | null>(null)
-  React.useEffect(() => { fetchBundle().then(setBundle).catch(console.error) }, [])
+  React.useEffect(() => { getBundle().then(setBundle).catch(console.error) }, [])
   if (!bundle) return <div className="p-8">Loading…</div>
 
   const grouped = new Map<number, AppPlayer[]>()

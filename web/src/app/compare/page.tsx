@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ImageWithFallback } from '@/components/ui/image-with-fallback'
 import { Button } from '@/components/ui/button'
 import type { AppBundle, AppPlayer } from '@/lib/types'
+import { getBundle } from '@/lib/bundle-store'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 // brand removed per request – simple wordmark instead
@@ -17,11 +18,7 @@ function readBundleFromWindow(): AppBundle | null {
   return null
 }
 
-async function fetchBundle(): Promise<AppBundle> {
-  const res = await fetch('/api/app-bundle', { cache: 'no-store' })
-  if (!res.ok) throw new Error('Failed to load bundle')
-  return res.json()
-}
+// Shared cached bundle loader lives in bundle-store
 
 function useCookie(name: string) {
   const [value, setValue] = useState<string | null>(null)
@@ -282,7 +279,7 @@ export default function ComparePage() {
   const [mobileVideoById, setMobileVideoById] = useState<Record<number, string>>({})
 
   useEffect(() => {
-    fetchBundle().then(setBundle).catch(console.error)
+    getBundle().then(setBundle).catch(console.error)
   }, [])
 
   // Inbound share link handling (hash r=...) – offer to replace or merge
