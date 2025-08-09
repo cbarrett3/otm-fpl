@@ -183,11 +183,7 @@ function updateRanking(current: number[], winner: number, loser: number): number
   return arr
 }
 
-function initials(name: string): string {
-  const parts = name.split(/\s+/).filter(Boolean)
-  const chars = parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '')
-  return chars.join('') || 'PL'
-}
+// initials helper no longer used after header change
 
 // Approximate primary colors for clubs. Keyed by team.shortName.
 const TEAM_COLORS: Record<string, string> = {
@@ -240,27 +236,11 @@ function TeamChip({ code }: { code: string }) {
 }
 
 function PlayerHeader({ p }: { p: AppPlayer }) {
-  const hasImg = Boolean(p.images.card)
-  if (hasImg) {
-    return (
-      <ImageWithFallback src={p.images.card!} alt={p.name} className="h-24 w-auto rounded bg-black/5 dark:bg-white/10" />
-    )
-  }
-  // Fallback: branded SVG silhouette with team badge overlay and initials caption
+  // Compact avatar header; full-card background image is handled by the card container
+  const src = p.images.avatar ?? p.images.card ?? undefined
   return (
-    <div className="relative h-24 w-20">
-      <ImageWithFallback src={undefined} alt="" className="h-24 w-20 rounded" />
-      {p.team.badges?.badge50 ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={p.team.badges.badge50}
-          alt=""
-          className="absolute -bottom-2 -right-2 h-6 w-6 rounded-full ring-2 ring-black/10 dark:ring-white/10"
-        />
-      ) : null}
-      <div className="absolute inset-0 flex items-end justify-center pb-1">
-        <span className="text-[10px] font-semibold text-white/90 drop-shadow">{initials(p.name)}</span>
-      </div>
+    <div className="relative h-12 w-12">
+      <ImageWithFallback src={src} alt="" className="h-12 w-12 rounded-full object-cover" />
     </div>
   )
 }
@@ -481,7 +461,7 @@ export default function ComparePage() {
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setMobileVideoOpenId(mobileVideoOpenId === p.id ? null : p.id) }}
-        className="md:hidden absolute right-3 top-3 rounded overflow-hidden border border-black/10 dark:border-white/15"
+        className="md:hidden absolute right-3 top-3 z-30 rounded overflow-hidden border border-black/10 dark:border-white/15"
         aria-label="Play highlights"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -568,6 +548,30 @@ export default function ComparePage() {
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="group relative rounded-lg border border-black/10 dark:border-white/15 cursor-pointer transition p-4 flex flex-col h-full min-h-[300px] md:min-h-[420px] overflow-hidden"
           >
+            {/* Background player image */}
+            {p.images.card ? (
+              <>
+                <ImageWithFallback
+                  src={p.images.card}
+                  alt=""
+                  className="pointer-events-none absolute inset-0 h-full w-full object-cover object-top md:object-center opacity-20 md:opacity-25 blur-[1px] scale-110"
+                />
+                {/* Team color tint overlay (very subtle) */}
+                {(() => {
+                  const tint = (TEAM_COLORS as Record<string, string>)[p.team.shortName] ?? '#666666'
+                  return (
+                    <span
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background: `radial-gradient(120% 140% at 50% 0%, ${tint}26 0%, ${tint}1a 45%, transparent 75%)`,
+                        mixBlendMode: 'screen' as React.CSSProperties['mixBlendMode']
+                      }}
+                    />
+                  )
+                })()}
+                <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
+              </>
+            ) : null}
             {/* Subtle electric border on hover */}
             <span className="pointer-events-none absolute inset-0 rounded-lg border border-yellow-300 opacity-0 group-hover:opacity-60 transition-opacity" />
             {choosingId === p.id ? (
@@ -582,7 +586,7 @@ export default function ComparePage() {
                 }}
               />
             ) : null}
-            <div className="flex items-center gap-3 mb-4">
+            <div className="relative z-10 flex items-center gap-3 mb-4">
               <PlayerHeader p={p} />
               <div>
                 <div className="text-lg font-medium flex items-center gap-2">
@@ -602,11 +606,22 @@ export default function ComparePage() {
                   <span>• {p.position}</span>
                   <span>• £{p.price.toFixed(1)}m</span>
                 </div>
+                {/* Mobile quick chips (rank + PP/90) placed near top to avoid bottom crowding */}
+                {p.fantraxProjection ? (
+                  <div className="mt-2 flex md:hidden items-center gap-2 text-xs">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40" title={`Fantrax overall rank – #${p.fantraxProjection.overallRank}`}>
+                      #{p.fantraxProjection.overallRank}
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-300 border border-yellow-500/30" title="PP/90">
+                      PP/90 {p.fantraxProjection.pp90.toFixed(2)}
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </div>
             {/* Tiny video thumbnail (mobile) */}
             <MobileHighlightThumb p={p} />
-            {/* Compact stats on mobile */}
+            {/* Desktop core stats in-grid (not absolute) for clean layout */}
             <div className="grid grid-cols-3 gap-3 text-sm hidden md:grid">
               <Stat label="Pts" value={p.lastSeason ? p.lastSeason.totalPoints : p.stats.points} />
               <Stat label="G" value={p.lastSeason ? p.lastSeason.goals : p.stats.goals} />
@@ -616,16 +631,7 @@ export default function ComparePage() {
               <Stat label="A/90" value={p.lastSeason ? p.lastSeason.per90.points != null ? p.lastSeason.per90.assists : null : p.stats.per90.assists} />
             </div>
             {/* Mobile quick chips */}
-            {p.fantraxProjection ? (
-              <div className="mt-2 flex md:hidden items-center gap-2 text-xs">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40" title={`Fantrax overall rank – #${p.fantraxProjection.overallRank}`}>
-                  #{p.fantraxProjection.overallRank}
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-300 border border-yellow-500/30" title="PP/90">
-                  PP/90 {p.fantraxProjection.pp90.toFixed(2)}
-                </span>
-              </div>
-            ) : null}
+            {/* Moved mobile chips above; this block removed to prevent bottom crowding */}
             {/* Add mini season counters on mobile */}
             {(() => {
               const pts = p.lastSeason ? p.lastSeason.totalPoints : p.stats.points
@@ -633,17 +639,21 @@ export default function ComparePage() {
               const aVal = p.lastSeason ? p.lastSeason.assists : p.stats.assists
               const cs = p.lastSeason ? p.lastSeason.cleanSheets : p.stats.cleanSheets
               const StatPill = ({ label, val }: { label: string; val: number }) => (
-                <span className="pointer-events-none inline-flex flex-col items-center justify-center h-12 rounded-md border border-yellow-500/30 bg-yellow-500/10 text-yellow-200 shadow-[inset_0_0_0_1px_rgba(250,204,21,.12)]">
-                  <span className="text-sm font-semibold leading-4 text-yellow-50">{val}</span>
-                  <span className="text-[10px] uppercase tracking-wide text-yellow-300/90">{label}</span>
+                <span className="pointer-events-none inline-flex flex-col items-center justify-center h-16 w-20 rounded-md border border-white/20 bg-black/45 backdrop-blur-sm text-white/90 shadow-[0_8px_20px_rgba(0,0,0,0.35)]">
+                  <span className="text-lg font-semibold leading-5 text-white">{val}</span>
+                  <span className="text-xs uppercase tracking-wide text-white/75">{label}</span>
                 </span>
               )
               return (
-                <div className="mt-2 grid grid-cols-4 gap-2 md:hidden">
-                  <StatPill label="Pts" val={pts} />
-                  <StatPill label="G" val={g} />
-                  <StatPill label="A" val={aVal} />
-                  <StatPill label="CS" val={cs} />
+                <div className="mt-2 md:hidden relative z-10 flex items-start justify-between gap-4 px-1">
+                  <div className="flex flex-col gap-2">
+                    <StatPill label="Pts" val={pts} />
+                    <StatPill label="G" val={g} />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <StatPill label="A" val={aVal} />
+                    <StatPill label="CS" val={cs} />
+                  </div>
                 </div>
               )
             })()}
@@ -686,13 +696,45 @@ export default function ComparePage() {
                 return <span>{form ? `Formation ${form}` : ''}{form && slot ? ' • ' : ''}{slot ? `Role ${slot}` : ''}</span>
               })()}
             </div>
-            <div className="mt-1 text-xs">
+            <div className="mt-1 text-xs relative z-20">
               Predicted GW1 XI: {p.predictedGW1 === true ? (
-                <span className="text-green-600 dark:text-green-400">YES</span>
+                <motion.span
+                  initial={{ scale: 0.96, opacity: 0.95 }}
+                  animate={{
+                    scale: [1, 1.06, 1],
+                    boxShadow: [
+                      '0 0 0 0 rgba(16,185,129,0.55)',
+                      '0 0 0 10px rgba(16,185,129,0)',
+                      '0 0 0 0 rgba(16,185,129,0)'
+                    ],
+                    opacity: 1,
+                  }}
+                  transition={{ duration: 1.6, repeat: Infinity, repeatType: 'loop', ease: 'easeOut' }}
+                  className="ml-2 inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-2 py-0.5 border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 font-semibold"
+                  title="Predicted to start GW1"
+                >
+                  <span>🔥</span> YES
+                </motion.span>
               ) : p.predictedGW1 === false ? (
-                <span className="text-red-600 dark:text-red-400">NO</span>
+                <motion.span
+                  initial={{ scale: 0.96, opacity: 0.95 }}
+                  animate={{
+                    scale: [1, 1.04, 1],
+                    boxShadow: [
+                      '0 0 0 0 rgba(244,63,94,0.55)',
+                      '0 0 0 10px rgba(244,63,94,0)',
+                      '0 0 0 0 rgba(244,63,94,0)'
+                    ],
+                    opacity: 1,
+                  }}
+                  transition={{ duration: 1.6, repeat: Infinity, repeatType: 'loop', ease: 'easeOut' }}
+                  className="ml-2 inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-2 py-0.5 border border-rose-500/50 bg-rose-500/15 text-rose-300 font-semibold"
+                  title="Not expected to start GW1"
+                >
+                  <span>⛔</span> NO
+                </motion.span>
               ) : (
-                <span className="text-black/60 dark:text-white/60">Unknown</span>
+                <span className="ml-2 inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-2 py-0.5 border border-white/20 bg-white/5 text-white/70">TBD</span>
               )}
               {p.gw1InjuryTag ? (
                 <span className="ml-2 px-1.5 py-0.5 rounded border text-[10px] uppercase tracking-wide
@@ -719,10 +761,10 @@ export default function ComparePage() {
                 <DynamicHighlight query={`${p.name} ${p.team.name} highlights`} />
               </div>
             )})()}
-            <div className="mt-3 text-xs text-black/60 dark:text-white/60 hidden md:block">
+            <div className="mt-2 md:mt-3 text-xs text-black/60 dark:text-white/60 hidden md:block">
               Next3: {p.upcoming.next3.map((f) => `${f.isHome ? 'H' : 'A'} ${f.opponent}${typeof f.difficulty === 'number' ? `(${f.difficulty})` : ''}`).join(' • ')}
             </div>
-            <div className="mt-auto pt-4 text-xs text-black/50 dark:text-white/50 hidden md:block">Click card to prefer</div>
+            <div className="mt-auto pt-2 md:pt-4 text-xs text-black/50 dark:text-white/50 hidden md:block">Click card to prefer</div>
           </motion.div>
         ))}
       </div>
