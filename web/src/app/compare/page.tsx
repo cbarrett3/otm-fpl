@@ -10,6 +10,7 @@ import type { AppBundle, AppPlayer } from '@/lib/types'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 // brand removed per request – simple wordmark instead
+import LZString from 'lz-string'
 
 function readBundleFromWindow(): AppBundle | null {
   // The page will fetch the JSON via fetch() on mount; SSR reads are not allowed in client.
@@ -282,6 +283,34 @@ export default function ComparePage() {
     fetchBundle().then(setBundle).catch(console.error)
   }, [])
 
+  // Inbound share link handling (hash r=...) – offer to replace or merge
+  useEffect(() => {
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    const m = hash.match(/[#&]r=([^&]+)/)
+    if (!m) return
+    try {
+      const json = LZString.decompressFromEncodedURIComponent(m[1])
+      const parsed = JSON.parse(json || '{}') as { order?: number[] }
+      if (!Array.isArray(parsed.order)) return
+      const incoming = parsed.order as number[]
+      const current = ranking.order
+      if (incoming.length === 0) return
+      const proceed = confirm('Import shared ranking?\n\nOK = Replace mine\nCancel = Merge')
+      if (proceed) {
+        setRankCookie(JSON.stringify({ order: incoming }))
+      } else {
+        const set = new Set<number>()
+        const merged: number[] = []
+        for (const id of incoming) { if (!set.has(id)) { set.add(id); merged.push(id) } }
+        for (const id of current) { if (!set.has(id)) { set.add(id); merged.push(id) } }
+        setRankCookie(JSON.stringify({ order: merged }))
+      }
+      // cleanup hash so it doesn't re-trigger
+      history.replaceState(null, '', window.location.pathname)
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const applyFilters = React.useCallback((players: AppPlayer[]): AppPlayer[] => {
     const hasPos = selectedPositions.size > 0
     const hasTeam = selectedTeams.size > 0
@@ -453,7 +482,7 @@ export default function ComparePage() {
         ) : null}
       </div>
       <p className="mb-6 text-sm text-black/70 dark:text-white/70">
-        Your picks and rankings are stored in browser cookies on this device. Do not clear cookies if you want to keep progress, and note rankings do not sync across devices.
+        Your ranking is saved locally on this device (cookies). Use <span className="text-yellow-400">Share/Sync</span> from the Rankings page to move it to another device. Avoid clearing cookies if you want to keep your progress.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
         {[a, b].map((p) => (

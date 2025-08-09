@@ -8,6 +8,7 @@ import { ImageWithFallback } from '@/components/ui/image-with-fallback'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import LZString from 'lz-string'
 
 async function fetchBundle(): Promise<AppBundle> {
   const res = await fetch('/api/app-bundle', { cache: 'no-store' })
@@ -123,6 +124,27 @@ export default function RankingsPage() {
     writeCookie('otm_ranking', JSON.stringify({ order: next }))
   }
 
+  function shareLink(): void {
+    try {
+      const payload = JSON.stringify({ order })
+      const compressed = LZString.compressToEncodedURIComponent(payload)
+      const url = `${location.origin}/compare#r=${compressed}`
+      if (navigator.share) {
+        navigator.share({ title: 'OTM FPL ranking', url }).catch(() => {
+          navigator.clipboard?.writeText(url).catch(() => {})
+          alert('Link copied to clipboard')
+        })
+      } else {
+        navigator.clipboard?.writeText(url).catch(() => {})
+        alert('Link copied to clipboard')
+      }
+    } catch {
+      // noop
+    }
+  }
+
+  // QR code support removed per request – keeping share link only
+
   // no-op: previous DnD helper removed
 
   function moveUp(id: number) {
@@ -172,24 +194,33 @@ export default function RankingsPage() {
             </div>
             <Button
               variant="danger"
-              className="rounded-full h-10 sm:h-8 px-4 sm:px-3 min-w-[112px] justify-center"
+              className="rounded-full h-10 sm:h-8 px-3 sm:px-2 min-w-0 w-10 sm:w-8 justify-center text-lg"
               onClick={() => setConfirmResetOpen(true)}
-              title="Clear saved rankings and start over"
+              title="Reset rankings"
+              aria-label="Reset rankings"
             >
-              Start over
+              ↺
+            </Button>
+            <Button
+              variant="ghost"
+              className="rounded-full h-10 sm:h-8 px-4 sm:px-3 min-w-[112px] justify-center"
+              onClick={shareLink}
+              title="Create a shareable link to sync this ranking across devices"
+            >
+              Share/Sync
             </Button>
           </div>
         </div>
-        <Link
-          href="/compare"
-          prefetch
-          aria-label="Back to compare"
-          className="rounded-full h-10 sm:h-8 px-4 sm:px-3 min-w-[112px] ml-auto mt-1 sm:mt-0 flex items-center gap-2 border border-black/10 dark:border-white/15 hover:bg-white/10 active:scale-[0.98] transition"
-          style={{ touchAction: 'manipulation' }}
-        >
-          <span className="sm:hidden text-lg">←</span>
-          <span className="hidden sm:inline">Back to Compare</span>
-        </Link>
+        <Button asChild variant="ghost" className="rounded-full h-10 sm:h-8 px-4 sm:px-3 min-w-[112px] ml-auto mt-1 sm:mt-0 justify-center text-yellow-400">
+          <Link
+            href="/compare"
+            prefetch
+            aria-label="Back"
+            style={{ touchAction: 'manipulation' }}
+          >
+            BACK
+          </Link>
+        </Button>
       </div>
       {confirmResetOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
