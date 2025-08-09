@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from 'react'
 import type { AppBundle, AppPlayer } from '@/lib/types'
 import { ImageWithFallback } from '@/components/ui/image-with-fallback'
 import { Button } from '@/components/ui/button'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
 
 async function fetchBundle(): Promise<AppBundle> {
   const res = await fetch('/api/app-bundle', { cache: 'no-store' })
@@ -147,9 +149,13 @@ export default function RankingsPage() {
 
   return (
     <div className="min-h-screen p-6 sm:p-10">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between relative z-20">
         <div className="flex items-center gap-3 sm:gap-4">
-          <h1 className="hidden sm:block text-2xl font-semibold">Your Rankings</h1>
+          <h1 className="hidden sm:block text-2xl font-semibold">
+            <Link href="/" prefetch className="text-yellow-400 -skew-x-6 tracking-wider" aria-label="Go to Home" style={{ touchAction: 'manipulation' }}>
+              OTM&nbsp;FPL
+            </Link>
+          </h1>
           <div className="flex items-center gap-2">
             <div className="relative group">
               <Button
@@ -174,12 +180,16 @@ export default function RankingsPage() {
             </Button>
           </div>
         </div>
-        <Button asChild variant="ghost" className="rounded-full h-10 sm:h-8 px-4 sm:px-3 min-w-[112px] justify-center ml-auto mt-1 sm:mt-0">
-          <a href="/compare" aria-label="Back to compare" className="flex items-center gap-2">
-            <span className="sm:hidden text-lg">←</span>
-            <span className="hidden sm:inline">Back to Compare</span>
-          </a>
-        </Button>
+        <Link
+          href="/compare"
+          prefetch
+          aria-label="Back to compare"
+          className="rounded-full h-10 sm:h-8 px-4 sm:px-3 min-w-[112px] ml-auto mt-1 sm:mt-0 flex items-center gap-2 border border-black/10 dark:border-white/15 hover:bg-white/10 active:scale-[0.98] transition"
+          style={{ touchAction: 'manipulation' }}
+        >
+          <span className="sm:hidden text-lg">←</span>
+          <span className="hidden sm:inline">Back to Compare</span>
+        </Link>
       </div>
       {confirmResetOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -205,51 +215,39 @@ export default function RankingsPage() {
           </div>
         </div>
       )}
-      <ol className="mb-10 columns-1 sm:columns-2 lg:columns-3 gap-6 [column-fill:balance]">
+      <motion.ol layout className="mb-10 columns-1 sm:columns-2 lg:columns-3 gap-6 [column-fill:balance]">
         {ranked.map((p, idx) => (
-          <li
+          <motion.li
             key={p.id}
-            className={`mb-2 break-inside-avoid flex items-center gap-4 sm:gap-3 rounded p-3 sm:p-2 select-none w-full overflow-hidden`}
+            layout
+            className={`relative mb-2 break-inside-avoid flex items-center gap-4 sm:gap-3 rounded p-3 sm:p-2 select-none w-full overflow-hidden cursor-pointer hover:border-yellow-400/40 hover:ring-2 hover:ring-yellow-400/20 transition-colors ${dragId === p.id ? 'ring-2 ring-yellow-400/70 shadow-[0_10px_28px_rgba(250,204,21,0.28)]' : ''} ${dragOverId === p.id && dragId != null ? 'ring-2 ring-yellow-300/70 shadow-[0_8px_24px_rgba(250,204,21,0.22)]' : ''}`}
             style={{
               borderWidth: 1,
               borderStyle: 'solid',
               borderColor: 'var(--tw-border-color)',
-              // colored left bar per round (slightly stronger)
-              boxShadow: `inset 6px 0 0 0 ${ROUND_COLORS[roundIndex(idx + 1)]}66`,
-              // normal border
-              // use CSS variable inlined via casting to string index signature
-              ...({ ['--tw-border-color']: 'rgba(255,255,255,0.15)' } as Record<string, string>)
+              // subtle inner outline + colored left bar per round
+              boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.06), inset 6px 0 0 0 ${ROUND_COLORS[roundIndex(idx + 1)]}66`,
+              ...({ ['--tw-border-color']: 'rgba(255,255,255,0.15)', perspective: '1000px' } as unknown as Record<string, string>)
             }}
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.effectAllowed = 'move'
-              setDragId(p.id)
-              setDragOverId(null)
-            }}
-            onDragOver={(e) => {
-              e.preventDefault()
-              if (dragOverId !== p.id) setDragOverId(p.id)
-            }}
-            onDragLeave={() => {
-              if (dragOverId === p.id) setDragOverId(null)
-            }}
-            onDrop={(e) => {
-              e.preventDefault()
-              if (dragId == null || dragId === p.id) { setDragId(null); setDragOverId(null); return }
-              const a = dragId
-              const b = p.id
-              const next = order.slice()
-              const ai = next.indexOf(a)
-              const bi = next.indexOf(b)
-              if (ai !== -1 && bi !== -1) {
-                ;[next[ai], next[bi]] = [next[bi], next[ai]]
-                commitOrder(next)
-              }
-              setDragId(null)
-              setDragOverId(null)
-            }}
-            onDragEnd={() => { setDragId(null); setDragOverId(null) }}
+            whileHover={{ y: -2, scale: 1.01, rotateX: 1, rotateY: -1 }}
+            animate={dragId === p.id ? { scale: 1.02, rotateX: 4, rotateY: -4 } : dragOverId === p.id && dragId != null ? { scale: 1.005 } : { scale: 1, rotateX: 0, rotateY: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 24 }}
           >
+            {/* removed full-card drag overlay to keep buttons clickable */}
+            {dragOverId === p.id && dragId != null ? (
+              <motion.div
+                className="pointer-events-none absolute inset-0 rounded"
+                style={{
+                  background:
+                    'radial-gradient(120% 160% at 0% 0%, rgba(250,204,21,0.18) 0%, rgba(250,204,21,0.06) 50%, rgba(0,0,0,0) 70%)',
+                  outline: '2px dashed rgba(250,204,21,0.85)',
+                  outlineOffset: '-2px',
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+            ) : null}
             <span className="w-8 sm:w-6 text-right text-base sm:text-sm text-black/60 dark:text-white/60">{idx + 1}</span>
             {idx % 12 === 0 ? (
               <span
@@ -261,7 +259,42 @@ export default function RankingsPage() {
               </span>
             ) : null}
             <ImageWithFallback src={p.images.avatar ?? undefined} alt="" className="h-8 w-8 sm:h-6 sm:w-6 rounded-full" />
-            <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+            <div
+              className="flex-1 min-w-0 flex items-center gap-2 flex-wrap"
+              draggable
+              onDragStart={(e: React.DragEvent) => {
+                e.dataTransfer.effectAllowed = 'move'
+                setDragId(p.id)
+                setDragOverId(p.id)
+              }}
+              onDragOver={(e: React.DragEvent) => {
+                e.preventDefault()
+                if (dragOverId !== p.id) setDragOverId(p.id)
+              }}
+              onDragEnter={(e: React.DragEvent) => {
+                e.preventDefault()
+                if (dragOverId !== p.id) setDragOverId(p.id)
+              }}
+              onDragLeave={() => {
+                // do not clear immediately to avoid flicker when moving into buttons
+              }}
+              onDrop={(e: React.DragEvent) => {
+                e.preventDefault()
+                if (dragId == null || dragId === p.id) { setDragId(null); setDragOverId(null); return }
+                const a = dragId
+                const b = p.id
+                const next = order.slice()
+                const ai = next.indexOf(a)
+                const bi = next.indexOf(b)
+                if (ai !== -1 && bi !== -1) {
+                  ;[next[ai], next[bi]] = [next[bi], next[ai]]
+                  commitOrder(next)
+                }
+                setDragId(null)
+                setDragOverId(null)
+              }}
+              onDragEnd={() => { setDragId(null); setDragOverId(null) }}
+            >
               <span className={`truncate text-base sm:text-sm ${dragId === p.id ? 'opacity-70' : ''}`}>{p.name}</span>
               <span className="text-xs text-black/60 dark:text-white/60 whitespace-nowrap">{p.team.shortName} • {p.position}</span>
               {p.fantraxProjection?.pp90 != null ? (() => {
@@ -281,7 +314,7 @@ export default function RankingsPage() {
               )
             })() : null}
             </div>
-            <span className={`ml-auto shrink-0 flex items-center gap-2 sm:gap-1 ${dragOverId === p.id && dragId != null ? 'ring-2 ring-emerald-500/40 rounded' : ''}`}> 
+            <span className={`ml-auto shrink-0 flex items-center gap-2 sm:gap-1 relative z-10 ${dragOverId === p.id && dragId != null ? 'ring-2 ring-emerald-500/40 rounded' : ''}`}> 
               <button
                 className="h-10 w-10 sm:h-7 sm:w-7 rounded-md border border-black/10 dark:border-white/15 hover:bg-green-500/10 text-green-600 dark:text-green-400 cursor-pointer flex items-center justify-center text-lg sm:text-base"
                 aria-label="Move up"
@@ -297,9 +330,9 @@ export default function RankingsPage() {
                 ↓
               </button>
             </span>
-          </li>
+          </motion.li>
         ))}
-      </ol>
+      </motion.ol>
 
       <h2 className="text-lg font-medium mb-3">Unranked suggestions</h2>
       <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

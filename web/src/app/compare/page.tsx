@@ -7,6 +7,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ImageWithFallback } from '@/components/ui/image-with-fallback'
 import { Button } from '@/components/ui/button'
 import type { AppBundle, AppPlayer } from '@/lib/types'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
+// brand removed per request – simple wordmark instead
 
 function readBundleFromWindow(): AppBundle | null {
   // The page will fetch the JSON via fetch() on mount; SSR reads are not allowed in client.
@@ -270,16 +273,34 @@ export default function ComparePage() {
   const ranking = useMemo(() => parseRanking(rankCookie), [rankCookie])
   const [pair, setPair] = useState<[AppPlayer, AppPlayer] | null>(null)
   const roundCursorRef = useRef(0) // cycles 0..9 focusing each draft round window
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [selectedPositions, setSelectedPositions] = useState<Set<string>>(new Set())
+  const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set())
+  const [choosingId, setChoosingId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchBundle().then(setBundle).catch(console.error)
   }, [])
 
+  const applyFilters = React.useCallback((players: AppPlayer[]): AppPlayer[] => {
+    const hasPos = selectedPositions.size > 0
+    const hasTeam = selectedTeams.size > 0
+    if (!hasPos && !hasTeam) return players
+    return players.filter((p) => {
+      const posOk = !hasPos || selectedPositions.has(p.position)
+      const teamOk = !hasTeam || selectedTeams.has(p.team.shortName)
+      return posOk && teamOk
+    })
+  }, [selectedPositions, selectedTeams])
+
   useEffect(() => {
     if (!bundle) return
     const focusStart = roundCursorRef.current * 12
-    setPair((prev) => pickPairSmart(bundle.players, ranking, prev ? [prev[0].id, prev[1].id] : undefined, 120, focusStart))
-  }, [bundle, ranking])
+    const pool = applyFilters(bundle.players)
+    setPair((prev) =>
+      pickPairSmart(pool, ranking, prev ? [prev[0].id, prev[1].id] : undefined, 120, focusStart)
+    )
+  }, [bundle, ranking, selectedPositions, selectedTeams, applyFilters])
 
   const onPick = (winner: AppPlayer, loser: AppPlayer) => {
     const nextOrder = updateRanking(ranking.order, winner.id, loser.id)
@@ -289,37 +310,186 @@ export default function ComparePage() {
       // rotate focus round to ensure coverage across first 10 rounds
       roundCursorRef.current = (roundCursorRef.current + 1) % 10
       const focusStart = roundCursorRef.current * 12
-      setPair(pickPairSmart(bundle.players, { order: nextOrder }, [winner.id, loser.id], 120, focusStart))
+      const pool = applyFilters(bundle.players)
+      setPair(pickPairSmart(pool, { order: nextOrder }, [winner.id, loser.id], 120, focusStart))
     }
   }
 
   const handleSelect = (winner: AppPlayer, loser: AppPlayer) => {
-    onPick(winner, loser)
+    // longer, more expressive animation before advancing
+    setChoosingId(winner.id)
+    setTimeout(() => {
+      onPick(winner, loser)
+      setChoosingId(null)
+    }, 700)
+  }
+
+  // Build options (must be declared before any early return to satisfy hooks rules)
+  const allPositions = useMemo(() => {
+    const s = new Set<string>()
+    bundle?.players.forEach((p) => s.add(p.position))
+    return Array.from(s)
+  }, [bundle])
+  const allTeams = useMemo(() => {
+    const s = new Set<string>()
+    bundle?.players.forEach((p) => s.add(p.team.shortName))
+    return Array.from(s).sort()
+  }, [bundle])
+
+  // reuse team colors from compare page for chips
+  const TEAM_COLORS: Record<string, string> = {
+    ARS: '#EF0107',
+    MUN: '#DA020E',
+    CHE: '#034694',
+    LIV: '#C8102E',
+    MCI: '#6CABDD',
+    NEW: '#241F20',
+    CRY: '#1B458F',
+    AVL: '#670E36',
+    BOU: '#DA291C',
+    BRE: '#E30613',
+    WHU: '#7A263A',
+    BHA: '#0057B8',
+    EVE: '#003399',
+    NFO: '#DD0000',
+    TOT: '#132257',
+    FUL: '#000000',
+    WOL: '#FDB913',
+    LEE: '#FFCD00',
+    BRN: '#6C1D45',
+    SUN: '#E2231A',
   }
 
   if (!bundle || !pair) return <div className="p-8">Loading…</div>
 
   const [a, b] = pair
 
+  const toggleSet = (prev: Set<string>, key: string): Set<string> => {
+    const next = new Set(prev)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    return next
+  }
+
+  const clearFilters = () => { setSelectedPositions(new Set()); setSelectedTeams(new Set()) }
+
+  function FilterChip({
+    label,
+    active,
+    onClick,
+    color,
+  }: { label: string; active: boolean; onClick: () => void; color?: string }) {
+    const activeStyles: React.CSSProperties | undefined = color
+      ? { backgroundColor: `${color}33`, borderColor: color, color }
+      : undefined
+    return (
+      <motion.button
+        type="button"
+        onClick={onClick}
+        aria-pressed={active}
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.96 }}
+        className={`cursor-pointer rounded-full border whitespace-nowrap px-4 py-2 md:px-4 md:py-2 text-base md:text-sm leading-none select-none ${
+          active ? '' : 'border-white/20 text-white/80 hover:border-white/40'
+        }`}
+        style={active ? activeStyles : undefined}
+      >
+        {label}
+      </motion.button>
+    )
+  }
+
   return (
     <div className="min-h-screen p-6 sm:p-10">
-      <div className="mb-2 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">FPL Draft Wizard</h1>
-        <Button asChild variant="ghost" className="h-8 px-3">
-          <a href="/rankings" aria-label="View your rankings">View Rankings</a>
-        </Button>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-semibold">
+          <Link
+            href="/"
+            prefetch
+            aria-label="Go to Home"
+            className="cursor-pointer inline-block text-yellow-400 -skew-x-6 tracking-wider"
+            style={{ touchAction: 'manipulation' }}
+          >
+            OTM&nbsp;FPL
+          </Link>
+        </h1>
+        <div className="flex items-center gap-2">
+          {/* Desktop filters – moved to full-width row below */}
+          {/* Mobile filter button */}
+          <Button className="md:hidden h-8 px-3" variant="ghost" onClick={() => setFiltersOpen(true)}>Filter</Button>
+          <Button asChild variant="ghost" className="h-8 px-3">
+            <Link href="/rankings" prefetch aria-label="View your rankings">View Rankings</Link>
+          </Button>
+        </div>
+      </div>
+      {/* Desktop filters row (full width, larger chips, not under nav) */}
+      <div className="hidden md:flex items-center gap-3 mt-3 relative z-20">
+        <div className="flex items-center gap-2">
+          {allPositions.map((pos) => (
+            <FilterChip
+              key={pos}
+              label={pos}
+              active={selectedPositions.has(pos)}
+              onClick={() => setSelectedPositions((s) => toggleSet(s, pos))}
+            />
+          ))}
+        </div>
+        <div
+          className="flex items-center gap-2 overflow-x-auto scrollbar-thin pr-24 whitespace-nowrap flex-1 py-1"
+          style={{ overscrollBehaviorX: 'contain', WebkitOverflowScrolling: 'touch' }}
+        >
+          {allTeams.map((t) => (
+            <FilterChip
+              key={t}
+              label={t}
+              active={selectedTeams.has(t)}
+              onClick={() => setSelectedTeams((s) => toggleSet(s, t))}
+              color={TEAM_COLORS[t] ?? '#22d3ee'}
+            />
+          ))}
+        </div>
+        {(selectedPositions.size || selectedTeams.size) ? (
+          <button className="text-xs underline text-white/70 shrink-0" onClick={clearFilters}>Clear</button>
+        ) : null}
       </div>
       <p className="mb-6 text-sm text-black/70 dark:text-white/70">
         Your picks and rankings are stored in browser cookies on this device. Do not clear cookies if you want to keep progress, and note rankings do not sync across devices.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
         {[a, b].map((p) => (
-          <div
+          <motion.div
             key={p.id}
             role="button"
             onClick={() => handleSelect(p, p.id === a.id ? b : a)}
-            className="rounded-lg border border-black/10 dark:border-white/15 hover:border-green-500/70 hover:ring-2 hover:ring-green-600/20 cursor-pointer transition p-4 flex flex-col h-full min-h-[420px]"
+            whileHover={{
+              y: -4,
+              scale: 1.01,
+              boxShadow:
+                '0 12px 28px rgba(0,0,0,0.35), 0 0 0 1px rgba(250,204,21,0.65), 0 0 14px rgba(250,204,21,0.28)'
+            }}
+            whileTap={{ scale: 0.98 }}
+            animate={choosingId == null
+              ? { scale: 1, opacity: 1, filter: 'none' }
+              : (choosingId === p.id
+                ? { scale: 1.08, y: -12, boxShadow: '0 0 0 4px rgba(255,255,255,0.40), 0 28px 60px rgba(0,0,0,0.55)' }
+                : { opacity: 0.25, scale: 0.94, y: 10, filter: 'grayscale(45%) blur(1px)' })}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="group relative rounded-lg border border-black/10 dark:border-white/15 cursor-pointer transition p-4 flex flex-col h-full min-h-[420px] overflow-hidden"
           >
+            {/* Subtle electric border on hover */}
+            <span className="pointer-events-none absolute inset-0 rounded-lg border border-yellow-300 opacity-0 group-hover:opacity-60 transition-opacity" />
+            {choosingId === p.id ? (
+              <motion.span
+                className="pointer-events-none absolute inset-0 rounded-lg"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: [0.0, 0.4, 0], scale: 1.25 }}
+                transition={{ duration: 0.65, ease: 'easeOut' }}
+                style={{
+                  background:
+                    'radial-gradient(closest-side, rgba(255,255,255,0.35), rgba(255,255,255,0.15) 60%, rgba(255,255,255,0) 70%)'
+                }}
+              />
+            ) : null}
             <div className="flex items-center gap-3 mb-4">
               <PlayerHeader p={p} />
               <div>
@@ -413,9 +583,51 @@ export default function ComparePage() {
               Next3: {p.upcoming.next3.map((f) => `${f.isHome ? 'H' : 'A'} ${f.opponent}${typeof f.difficulty === 'number' ? `(${f.difficulty})` : ''}`).join(' • ')}
             </div>
             <div className="mt-auto pt-4 text-xs text-black/50 dark:text-white/50">Click card to prefer</div>
-          </div>
+          </motion.div>
         ))}
       </div>
+      {/* Mobile filters modal */}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setFiltersOpen(false)} />
+          <div className="relative w-[min(92vw,560px)] max-h-[80vh] overflow-auto rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-zinc-900 p-4 shadow-xl">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-medium">Filters</h3>
+              <button className="text-sm underline" onClick={clearFilters}>Clear</button>
+            </div>
+            <div className="mb-3">
+              <div className="text-xs uppercase tracking-wide mb-1 text-black/60 dark:text-white/60">Positions</div>
+              <div className="flex flex-wrap gap-2">
+                {allPositions.map((pos) => (
+                  <FilterChip
+                    key={pos}
+                    label={pos}
+                    active={selectedPositions.has(pos)}
+                    onClick={() => setSelectedPositions((s) => toggleSet(s, pos))}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="mb-1">
+              <div className="text-xs uppercase tracking-wide mb-1 text-black/60 dark:text-white/60">Teams</div>
+              <div className="flex flex-wrap gap-2">
+                {allTeams.map((t) => (
+                  <FilterChip
+                    key={t}
+                    label={t}
+                    active={selectedTeams.has(t)}
+                    onClick={() => setSelectedTeams((s) => toggleSet(s, t))}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="ghost" className="h-8 px-3" onClick={() => setFiltersOpen(false)}>Close</Button>
+              <Button className="h-10 px-4" onClick={() => setFiltersOpen(false)}>Apply</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
