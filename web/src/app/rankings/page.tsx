@@ -171,9 +171,9 @@ export default function RankingsPage() {
 
   return (
     <div className="min-h-screen p-6 sm:p-10">
-      <div className="mb-6 flex items-center justify-between relative z-20">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <h1 className="hidden sm:block text-2xl font-semibold">
+      <div className="mb-6 relative z-20">
+        <div className="hidden md:flex items-center justify-between gap-3 sm:gap-4">
+          <h1 className="text-2xl font-semibold italic">
             <Link href="/" prefetch className="text-yellow-400 -skew-x-6 tracking-wider" aria-label="Go to Home" style={{ touchAction: 'manipulation' }}>
               OTM&nbsp;FPL
             </Link>
@@ -181,7 +181,7 @@ export default function RankingsPage() {
           <div className="flex items-center gap-2">
             <div className="relative group">
               <Button
-                className="rounded-full h-10 sm:h-8 px-4 sm:px-3 min-w-[112px] justify-center"
+                className="rounded-full h-8 px-3 min-w-[132px] justify-center"
                 variant="ghost"
                 onClick={handleExportCsv}
                 title="Export a CSV formatted for Fantrax → Rankings → Import Rankings (First Last,TEAM)"
@@ -203,24 +203,56 @@ export default function RankingsPage() {
             </Button>
             <Button
               variant="ghost"
-              className="rounded-full h-10 sm:h-8 px-4 sm:px-3 min-w-[112px] justify-center"
+              className="rounded-full h-8 px-3 min-w-[132px] justify-center"
               onClick={shareLink}
               title="Create a shareable link to sync this ranking across devices"
             >
               Share/Sync
             </Button>
+            <Button asChild variant="ghost" className="rounded-full h-8 px-3 min-w-[132px] justify-center text-yellow-400">
+              <Link href="/compare" prefetch aria-label="Back" style={{ touchAction: 'manipulation' }}>BACK</Link>
+            </Button>
           </div>
         </div>
-        <Button asChild variant="ghost" className="rounded-full h-10 sm:h-8 px-4 sm:px-3 min-w-[112px] ml-auto mt-1 sm:mt-0 justify-center text-yellow-400">
-          <Link
-            href="/compare"
-            prefetch
-            aria-label="Back"
-            style={{ touchAction: 'manipulation' }}
+        {/* Mobile wordmark on the top-left */}
+        <div className="md:hidden flex items-center justify-start">
+          <h1 className="text-xl font-semibold italic">
+            <Link href="/" prefetch className="text-yellow-400 -skew-x-6 tracking-wider" aria-label="Go to Home" style={{ touchAction: 'manipulation' }}>
+              OTM&nbsp;FPL
+            </Link>
+          </h1>
+        </div>
+        {/* Mobile action stack */}
+        <div className="mt-3 grid grid-cols-2 gap-2 md:hidden">
+          <Button
+            className="rounded-xl h-12 text-base"
+            variant="ghost"
+            onClick={handleExportCsv}
+            title="Export a CSV formatted for Fantrax"
           >
-            BACK
-          </Link>
-        </Button>
+            Export CSV
+          </Button>
+          <Button
+            className="rounded-xl h-12 text-base"
+            variant="ghost"
+            onClick={shareLink}
+            title="Create a shareable link to sync this ranking across devices"
+          >
+            Share/Sync
+          </Button>
+          <Button asChild variant="ghost" className="rounded-xl h-12 text-base col-span-2 text-yellow-400">
+            <Link href="/compare" prefetch aria-label="Back" style={{ touchAction: 'manipulation' }}>BACK</Link>
+          </Button>
+          <Button
+            className="rounded-xl h-12 text-base col-span-2"
+            variant="danger"
+            onClick={() => setConfirmResetOpen(true)}
+            title="Reset rankings"
+            aria-label="Reset rankings"
+          >
+            Reset
+          </Button>
+        </div>
       </div>
       {confirmResetOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

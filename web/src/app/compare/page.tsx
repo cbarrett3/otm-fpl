@@ -278,6 +278,8 @@ export default function ComparePage() {
   const [selectedPositions, setSelectedPositions] = useState<Set<string>>(new Set())
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set())
   const [choosingId, setChoosingId] = useState<number | null>(null)
+  const [mobileVideoOpenId, setMobileVideoOpenId] = useState<number | null>(null)
+  const [mobileVideoById, setMobileVideoById] = useState<Record<number, string>>({})
 
   useEffect(() => {
     fetchBundle().then(setBundle).catch(console.error)
@@ -330,6 +332,39 @@ export default function ComparePage() {
       pickPairSmart(pool, ranking, prev ? [prev[0].id, prev[1].id] : undefined, 120, focusStart)
     )
   }, [bundle, ranking, selectedPositions, selectedTeams, applyFilters])
+
+  // Formation + slot helpers (must be before any early return)
+  const teamIdToPredicted = React.useMemo(() => {
+    const map = new Map<number, AppPlayer[]>()
+    if (bundle) {
+      for (const pl of bundle.players) {
+        if (pl.predictedGW1 === true) {
+          const arr = map.get(pl.team.id) ?? []
+          arr.push(pl)
+          map.set(pl.team.id, arr)
+        }
+      }
+    }
+    return map
+  }, [bundle])
+
+  function getFormationString(teamId: number): string | null {
+    const list = teamIdToPredicted.get(teamId)
+    if (!list || list.length === 0) return null
+    const counts: Record<string, number> = { GKP: 0, DEF: 0, MID: 0, FWD: 0 }
+    for (const pl of list) counts[pl.position] = (counts[pl.position] ?? 0) + 1
+    if (counts.GKP === 0) return null
+    return `${counts.DEF}-${counts.MID}-${counts.FWD}`
+  }
+
+  function getRowSlot(p: AppPlayer): string | null {
+    const list = teamIdToPredicted.get(p.team.id)
+    if (!list) return null
+    const row = list.filter((x) => x.position === p.position).sort((a, b) => a.name.localeCompare(b.name))
+    const idx = row.findIndex((x) => x.id === p.id)
+    if (idx === -1) return null
+    return `${p.position} ${idx + 1}/${row.length}`
+  }
 
   const onPick = (winner: AppPlayer, loser: AppPlayer) => {
     const nextOrder = updateRanking(ranking.order, winner.id, loser.id)
@@ -428,6 +463,37 @@ export default function ComparePage() {
     )
   }
 
+  function MobileHighlightThumb({ p }: { p: AppPlayer }) {
+    const [vid, setVid] = React.useState<string | null>(p.highlight?.videoId ?? mobileVideoById[p.id] ?? null)
+    React.useEffect(() => {
+      if (vid) return
+      const query = `${p.name} ${p.team.name} highlights`
+      fetch(`/api/highlights?q=${encodeURIComponent(query)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.videoId) {
+            setVid(d.videoId)
+            setMobileVideoById((prev) => ({ ...prev, [p.id]: d.videoId }))
+          }
+        })
+        .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [p.id])
+    if (!vid) return null
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setMobileVideoOpenId(mobileVideoOpenId === p.id ? null : p.id) }}
+        className="md:hidden absolute right-3 top-3 rounded overflow-hidden border border-black/10 dark:border-white/15"
+        aria-label="Play highlights"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`https://img.youtube.com/vi/${vid}/mqdefault.jpg`} alt="" className="h-14 w-20 object-cover" />
+      </button>
+    )
+  }
+
+
   return (
     <div className="min-h-screen p-6 sm:p-10">
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -503,7 +569,7 @@ export default function ComparePage() {
                 ? { scale: 1.08, y: -12, boxShadow: '0 0 0 4px rgba(255,255,255,0.40), 0 28px 60px rgba(0,0,0,0.55)' }
                 : { opacity: 0.25, scale: 0.94, y: 10, filter: 'grayscale(45%) blur(1px)' })}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="group relative rounded-lg border border-black/10 dark:border-white/15 cursor-pointer transition p-4 flex flex-col h-full min-h-[420px] overflow-hidden"
+            className="group relative rounded-lg border border-black/10 dark:border-white/15 cursor-pointer transition p-4 flex flex-col h-full min-h-[300px] md:min-h-[420px] overflow-hidden"
           >
             {/* Subtle electric border on hover */}
             <span className="pointer-events-none absolute inset-0 rounded-lg border border-yellow-300 opacity-0 group-hover:opacity-60 transition-opacity" />
@@ -526,20 +592,13 @@ export default function ComparePage() {
                   {p.name}
                   {typeof p.draftSocietyTop50Rank === 'number' ? (
                     <span
-                      title={`Draft Society Top 50 #${p.draftSocietyTop50Rank}`}
+                      title={`Draft Society consensus (Top 75) – #${p.draftSocietyTop50Rank}`}
                       className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-yellow-500 text-black text-[11px] font-semibold"
                     >
                       {p.draftSocietyTop50Rank}
                     </span>
                   ) : null}
-                  {p.fantraxProjection ? (
-                    <span
-                      title={`Fantrax Overall #${p.fantraxProjection.overallRank}`}
-                      className="ml-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 text-[11px] font-medium"
-                    >
-                      Fantrax #{p.fantraxProjection.overallRank}
-                    </span>
-                  ) : null}
+                  {/* Removed green Fantrax overall chip near the name to avoid duplication */}
                 </div>
                 <div className="text-sm text-black/60 dark:text-white/60 flex items-center gap-2">
                   <TeamChip code={p.team.shortName} />
@@ -548,7 +607,10 @@ export default function ComparePage() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-sm">
+            {/* Tiny video thumbnail (mobile) */}
+            <MobileHighlightThumb p={p} />
+            {/* Compact stats on mobile */}
+            <div className="grid grid-cols-3 gap-3 text-sm hidden md:grid">
               <Stat label="Pts" value={p.lastSeason ? p.lastSeason.totalPoints : p.stats.points} />
               <Stat label="G" value={p.lastSeason ? p.lastSeason.goals : p.stats.goals} />
               <Stat label="A" value={p.lastSeason ? p.lastSeason.assists : p.stats.assists} />
@@ -556,8 +618,40 @@ export default function ComparePage() {
               <Stat label="G/90" value={p.lastSeason ? p.lastSeason.per90.points != null ? p.lastSeason.per90.goals : null : p.stats.per90.goals} />
               <Stat label="A/90" value={p.lastSeason ? p.lastSeason.per90.points != null ? p.lastSeason.per90.assists : null : p.stats.per90.assists} />
             </div>
+            {/* Mobile quick chips */}
             {p.fantraxProjection ? (
-              <div className="mt-3 rounded border border-yellow-500/50 bg-yellow-500/10 p-2">
+              <div className="mt-2 flex md:hidden items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40" title={`Fantrax overall rank – #${p.fantraxProjection.overallRank}`}>
+                  #{p.fantraxProjection.overallRank}
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-300 border border-yellow-500/30" title="PP/90">
+                  PP/90 {p.fantraxProjection.pp90.toFixed(2)}
+                </span>
+              </div>
+            ) : null}
+            {/* Add mini season counters on mobile */}
+            {(() => {
+              const pts = p.lastSeason ? p.lastSeason.totalPoints : p.stats.points
+              const g = p.lastSeason ? p.lastSeason.goals : p.stats.goals
+              const aVal = p.lastSeason ? p.lastSeason.assists : p.stats.assists
+              const cs = p.lastSeason ? p.lastSeason.cleanSheets : p.stats.cleanSheets
+              const StatPill = ({ label, val }: { label: string; val: number }) => (
+                <span className="pointer-events-none inline-flex flex-col items-center justify-center h-12 rounded-md border border-yellow-500/30 bg-yellow-500/10 text-yellow-200 shadow-[inset_0_0_0_1px_rgba(250,204,21,.12)]">
+                  <span className="text-sm font-semibold leading-4 text-yellow-50">{val}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-yellow-300/90">{label}</span>
+                </span>
+              )
+              return (
+                <div className="mt-2 grid grid-cols-4 gap-2 md:hidden">
+                  <StatPill label="Pts" val={pts} />
+                  <StatPill label="G" val={g} />
+                  <StatPill label="A" val={aVal} />
+                  <StatPill label="CS" val={cs} />
+                </div>
+              )
+            })()}
+            {p.fantraxProjection ? (
+              <div className="mt-3 rounded border border-yellow-500/50 bg-yellow-500/10 p-2 hidden md:block">
                 <div className="text-[10px] uppercase tracking-wide text-yellow-600 dark:text-yellow-400 mb-1">Fantrax projection</div>
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="inline-flex items-center gap-1 bg-yellow-500 text-black px-2 py-0.5 rounded-full font-medium" title="Overall ranking among all players">
@@ -576,7 +670,7 @@ export default function ComparePage() {
                 </div>
               </div>
             ) : null}
-            <div className="mt-2 text-xs text-black/70 dark:text-white/70">
+            <div className="mt-2 text-xs text-black/70 dark:text-white/70 hidden md:block">
               {p.lastSeason ? (
                 <>
                   Last season: {p.lastSeason.season} • Pts {p.lastSeason.totalPoints}, G {p.lastSeason.goals}, A {p.lastSeason.assists}
@@ -585,6 +679,15 @@ export default function ComparePage() {
               ) : (
                 <>No prior season data found • Showing base profile only</>
               )}
+            </div>
+            {/* Predicted lineup subtext */}
+            <div className="mt-1 text-[11px] italic text-white/60">
+              {(() => {
+                const form = getFormationString(p.team.id)
+                const slot = getRowSlot(p)
+                if (!form && !slot) return null
+                return <span>{form ? `Formation ${form}` : ''}{form && slot ? ' • ' : ''}{slot ? `Role ${slot}` : ''}</span>
+              })()}
             </div>
             <div className="mt-1 text-xs">
               Predicted GW1 XI: {p.predictedGW1 === true ? (
@@ -601,17 +704,28 @@ export default function ComparePage() {
                 </span>
               ) : null}
             </div>
-            {p.highlight?.source === 'youtube' ? (
-              <div className="mt-3">
-                <YouTubeEmbed videoId={p.highlight.videoId} title={`${p.name} highlights`} />
-              </div>
+            {/* Hide highlights and fixture details on mobile to fit two cards */}
+            {(() => { const vid = p.highlight?.videoId ?? mobileVideoById[p.id]; return vid ? (
+              <>
+                <div className="mt-3 hidden md:block">
+                  <YouTubeEmbed videoId={vid} title={`${p.name} highlights`} />
+                </div>
+                {/* Expanded video on mobile when tapped */}
+                {mobileVideoOpenId === p.id ? (
+                  <div className="mt-2 md:hidden">
+                    <YouTubeEmbed videoId={vid} title={`${p.name} highlights`} />
+                  </div>
+                ) : null}
+              </>
             ) : (
-              <DynamicHighlight query={`${p.name} ${p.team.name} highlights`} />
-            )}
-            <div className="mt-3 text-xs text-black/60 dark:text-white/60">
+              <div className="hidden md:block">
+                <DynamicHighlight query={`${p.name} ${p.team.name} highlights`} />
+              </div>
+            )})()}
+            <div className="mt-3 text-xs text-black/60 dark:text-white/60 hidden md:block">
               Next3: {p.upcoming.next3.map((f) => `${f.isHome ? 'H' : 'A'} ${f.opponent}${typeof f.difficulty === 'number' ? `(${f.difficulty})` : ''}`).join(' • ')}
             </div>
-            <div className="mt-auto pt-4 text-xs text-black/50 dark:text-white/50">Click card to prefer</div>
+            <div className="mt-auto pt-4 text-xs text-black/50 dark:text-white/50 hidden md:block">Click card to prefer</div>
           </motion.div>
         ))}
       </div>
