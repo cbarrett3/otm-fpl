@@ -383,7 +383,7 @@ export default function ComparePage() {
     if (!list || list.length === 0) return null
     const counts: Record<string, number> = { GKP: 0, DEF: 0, MID: 0, FWD: 0 }
     for (const pl of list) counts[pl.position] = (counts[pl.position] ?? 0) + 1
-    if (counts.GKP === 0) return null
+    // Show formation even if GK not identified
     return `${counts.DEF}-${counts.MID}-${counts.FWD}`
   }
 
@@ -628,7 +628,7 @@ export default function ComparePage() {
                 <ImageWithFallback
                   src={p.images.card}
                   alt=""
-                  className="pointer-events-none absolute inset-0 h-full w-full object-cover object-top md:object-center opacity-20 md:opacity-25 blur-[1px] scale-110"
+                  className="pointer-events-none absolute inset-0 h-full w-full object-cover object-top md:object-center opacity-20 md:opacity-25 blur-[8px] brightness-75 scale-105"
                 />
                 {/* Team color tint overlay (very subtle) */}
                 {(() => {

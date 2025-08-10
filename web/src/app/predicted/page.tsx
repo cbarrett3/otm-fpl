@@ -15,26 +15,51 @@ const POS_ORDER: Record<string, number> = { GKP: 0, DEF: 1, MID: 2, FWD: 3 }
 
 export default function PredictedPage() {
   const [bundle, setBundle] = React.useState<AppBundle | null>(null)
+  const [selectedTeams, setSelectedTeams] = React.useState<Set<string>>(new Set())
   const router = useRouter()
   React.useEffect(() => { getBundle().then(setBundle).catch(console.error) }, [])
-  if (!bundle) return <div className="p-8">Loading…</div>
 
-  const grouped = new Map<number, AppPlayer[]>()
-  for (const p of bundle.players) {
-    if (p.predictedGW1 === true) {
-      const arr = grouped.get(p.team.id) ?? []
-      arr.push(p)
-      grouped.set(p.team.id, arr)
+  const grouped = React.useMemo(() => {
+    const map = new Map<number, AppPlayer[]>()
+    if (!bundle) return map
+    for (const p of bundle.players) {
+      if (p.predictedGW1 === true) {
+        const arr = map.get(p.team.id) ?? []
+        arr.push(p)
+        map.set(p.team.id, arr)
+      }
     }
+    return map
+  }, [bundle])
+
+  const allTeams = React.useMemo(() => {
+    const s = new Set<string>()
+    bundle?.players.forEach((p) => s.add(p.team.shortName))
+    return Array.from(s).sort()
+  }, [bundle])
+
+  const toggleTeam = (code: string) => {
+    setSelectedTeams((prev) => {
+      const next = new Set(prev)
+      if (next.has(code)) next.delete(code)
+      else next.add(code)
+      return next
+    })
   }
 
-  // Sort teams by name for stable output
-  const teams = Array.from(grouped.entries())
+  // Sort teams by name for stable output and apply filter
+  const teams = React.useMemo(() => Array.from(grouped.entries())
     .map(([teamId, players]) => ({ teamId, teamName: players[0]?.team.name ?? String(teamId), players }))
     .sort((a, b) => a.teamName.localeCompare(b.teamName))
+    .filter((t) => {
+      if (selectedTeams.size === 0) return true
+      const code = t.players[0]?.team.shortName
+      return code ? selectedTeams.has(code) : true
+    }), [grouped, selectedTeams])
 
   return (
     <div className="min-h-screen p-6 sm:p-10">
+      {!bundle ? <div className="p-8">Loading…</div> : null}
       <div className="mb-6 relative z-20">
         <div className="flex items-center justify-between gap-3 sm:gap-4">
           <h1 className="text-2xl font-semibold italic">
@@ -50,6 +75,23 @@ export default function PredictedPage() {
           >
             BACK
           </Button>
+        </div>
+        {/* Team filter chips */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {allTeams.map((code) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => toggleTeam(code)}
+              className={`cursor-pointer rounded-full border px-3 py-1 text-sm ${selectedTeams.has(code) ? 'border-yellow-400 text-yellow-300 bg-yellow-400/10' : 'border-white/20 text-white/80 hover:border-white/40'}`}
+              aria-pressed={selectedTeams.has(code)}
+            >
+              {code}
+            </button>
+          ))}
+          {selectedTeams.size > 0 && (
+            <button className="text-xs underline ml-1 text-white/70" onClick={() => setSelectedTeams(new Set())}>Clear</button>
+          )}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">

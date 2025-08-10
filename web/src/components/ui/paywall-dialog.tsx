@@ -72,6 +72,9 @@ export function PaywallDialog({ open, onClose, onUnlock }: Props): React.ReactEl
                 </Button>
                 <Button className="h-9 px-3" variant="ghost" onClick={onClose}>Not now</Button>
               </div>
+              <div className="text-[11px] text-white/60">
+                Secure checkout via Stripe. No account needed.
+              </div>
               {showRestore ? (
                 <div className="mt-2 border-t border-white/10 pt-3">
                   <RestoreLicense />

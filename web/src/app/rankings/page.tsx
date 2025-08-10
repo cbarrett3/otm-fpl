@@ -82,11 +82,20 @@ export default function RankingsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bundle])
-  if (!bundle) return <div className="p-8">Loading…</div>
+  const PAGE_SIZE = 100
+  const [page, setPage] = useState(1)
 
-  const byId = new Map<number, AppPlayer>(Array.isArray(bundle.players) ? bundle.players.map((p) => [p.id, p]) : [])
+  const byId = new Map<number, AppPlayer>(Array.isArray(bundle?.players) ? bundle!.players.map((p) => [p.id, p]) : [])
   const ranked = order.map((id) => byId.get(id)).filter(Boolean) as AppPlayer[]
-  const unranked = (Array.isArray(bundle.players) ? bundle.players : []).filter((p) => !order.includes(p.id)).slice(0, 50)
+  const unranked = (Array.isArray(bundle?.players) ? bundle!.players : []).filter((p) => !order.includes(p.id)).slice(0, 50)
+
+  const totalPages = Math.max(1, Math.ceil((order.length || ranked.length) / PAGE_SIZE))
+  useEffect(() => { if (page > totalPages) setPage(totalPages) }, [page, totalPages])
+  const startIdx = (page - 1) * PAGE_SIZE
+  const endIdx = Math.min(ranked.length, startIdx + PAGE_SIZE)
+  const rankedPage = ranked.slice(startIdx, endIdx)
+
+  if (!bundle) return <div className="p-8">Loading…</div>
 
   function toCsv(rows: string[][]): string {
     return rows.map((r) => r.map((c) => `"${(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
@@ -173,55 +182,54 @@ export default function RankingsPage() {
   return (
     <div className="min-h-screen p-6 sm:p-10">
       <div className="mb-6 relative z-20">
-        <div className="hidden md:flex items-center justify-between gap-3 sm:gap-4">
+        {/* Top bar: wordmark left, Back right */}
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
           <h1 className="text-2xl font-semibold italic">
             <Link href="/" prefetch className="text-yellow-400 -skew-x-6 tracking-wider" aria-label="Go to Home" style={{ touchAction: 'manipulation' }}>
               OTM&nbsp;FPL
             </Link>
           </h1>
-          <div className="flex items-center gap-2">
-            <div className="relative group">
-              <Button
-                className="rounded-full h-8 px-3 min-w-[132px] justify-center"
-                variant="ghost"
-                onClick={handleExportCsv}
-                title="Export a CSV formatted for Fantrax → Rankings → Import Rankings (First Last,TEAM)"
-              >
-                Export CSV
-              </Button>
-              <div className="pointer-events-none absolute left-0 top-[110%] hidden w-[240px] rounded border border-black/10 dark:border-white/15 bg-white/95 dark:bg-zinc-900/95 p-2 text-[11px] text-black/70 dark:text-white/70 shadow-lg group-hover:block">
-                CSV is formatted for Fantrax: use Rankings → Import Rankings. Each row is &quot;First Last,TEAM&quot;.
-              </div>
-            </div>
-            <Button
-              variant="danger"
-              className="rounded-full h-10 sm:h-8 px-3 sm:px-2 min-w-0 w-10 sm:w-8 justify-center text-lg"
-              onClick={() => setConfirmResetOpen(true)}
-              title="Reset rankings"
-              aria-label="Reset rankings"
-            >
-              ↺
-            </Button>
-            <Button
-              variant="ghost"
-              className="rounded-full h-8 px-3 min-w-[132px] justify-center"
-              onClick={shareLink}
-              title="Create a shareable link to sync this ranking across devices"
-            >
-              Share/Sync
-            </Button>
-            <Button variant="ghost" className="rounded-full h-8 px-3 min-w-[132px] justify-center text-yellow-400" aria-label="Back" onClick={() => router.push('/compare')}>
-              BACK
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            className="rounded-full h-8 px-3 min-w-[132px] justify-center text-yellow-400"
+            aria-label="Back"
+            onClick={() => router.push('/compare')}
+          >
+            BACK
+          </Button>
         </div>
-        {/* Mobile wordmark on the top-left */}
-        <div className="md:hidden flex items-center justify-start">
-          <h1 className="text-2xl font-semibold italic">
-            <Link href="/" prefetch className="text-yellow-400 -skew-x-6 tracking-wider" aria-label="Go to Home" style={{ touchAction: 'manipulation' }}>
-              OTM&nbsp;FPL
-            </Link>
-          </h1>
+        {/* Action row below on desktop */}
+        <div className="hidden md:flex items-center gap-2 mt-3">
+          <div className="relative group">
+            <Button
+              className="rounded-full h-8 px-3 min-w-[132px] justify-center"
+              variant="ghost"
+              onClick={handleExportCsv}
+              title="Export a CSV formatted for Fantrax → Rankings → Import Rankings (First Last,TEAM)"
+            >
+              Export CSV
+            </Button>
+            <div className="pointer-events-none absolute left-0 top-[110%] hidden w-[240px] rounded border border-black/10 dark:border-white/15 bg-white/95 dark:bg-zinc-900/95 p-2 text-[11px] text-black/70 dark:text-white/70 shadow-lg group-hover:block">
+              CSV is formatted for Fantrax: use Rankings → Import Rankings. Each row is &quot;First Last,TEAM&quot;.
+            </div>
+          </div>
+          <Button
+            variant="danger"
+            className="rounded-full h-10 sm:h-8 px-3 sm:px-2 min-w-0 w-10 sm:w-8 justify-center text-lg"
+            onClick={() => setConfirmResetOpen(true)}
+            title="Reset rankings"
+            aria-label="Reset rankings"
+          >
+            ↺
+          </Button>
+          <Button
+            variant="ghost"
+            className="rounded-full h-8 px-3 min-w-[132px] justify-center"
+            onClick={shareLink}
+            title="Create a shareable link to sync this ranking across devices"
+          >
+            Share/Sync
+          </Button>
         </div>
         {/* Mobile action stack */}
         <div className="mt-3 grid grid-cols-2 gap-2 md:hidden">
@@ -240,9 +248,6 @@ export default function RankingsPage() {
             title="Create a shareable link to sync this ranking across devices"
           >
             Share/Sync
-          </Button>
-          <Button variant="ghost" className="rounded-xl h-12 text-base col-span-2 text-yellow-400" aria-label="Back" onClick={() => router.push('/compare')}>
-            BACK
           </Button>
           <Button
             className="rounded-xl h-12 text-base col-span-2"
@@ -279,8 +284,34 @@ export default function RankingsPage() {
           </div>
         </div>
       )}
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm text-white/70">Showing {startIdx + 1}–{endIdx} of {ranked.length}</div>
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            className="px-3 py-1 rounded border border-white/20 disabled:opacity-40 disabled:cursor-default cursor-pointer bg-white/5 hover:bg-white/10"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Prev
+          </motion.button>
+          <span className="text-sm">Page {page}/{totalPages}</span>
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            className="px-3 py-1 rounded border border-white/20 disabled:opacity-40 disabled:cursor-default cursor-pointer bg-white/5 hover:bg-white/10"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </motion.button>
+        </div>
+      </div>
       <motion.ol layout className="mb-10 columns-1 sm:columns-2 lg:columns-3 gap-6 [column-fill:balance]">
-        {ranked.map((p, idx) => (
+        {rankedPage.map((p, idx0) => {
+          const idx = startIdx + idx0
+          return (
           <motion.li
             key={p.id}
             layout
@@ -395,8 +426,14 @@ export default function RankingsPage() {
               </button>
             </span>
           </motion.li>
-        ))}
+          )
+        })}
       </motion.ol>
+      <div className="flex items-center justify-center gap-3 mt-4">
+        <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} className="px-3 py-1 rounded border border-white/20 disabled:opacity-40 disabled:cursor-default cursor-pointer bg-white/5 hover:bg-white/10" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Prev</motion.button>
+        <span className="text-sm">Page {page}/{totalPages}</span>
+        <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} className="px-3 py-1 rounded border border-white/20 disabled:opacity-40 disabled:cursor-default cursor-pointer bg-white/5 hover:bg-white/10" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</motion.button>
+      </div>
 
       <h2 className="text-lg font-medium mb-3">Unranked suggestions</h2>
       <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
