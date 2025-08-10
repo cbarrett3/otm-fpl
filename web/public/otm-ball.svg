@@ -5,13 +5,18 @@
   <circle cx="128" cy="128" r="110" fill="#0A0A0A" stroke="#FACC15" stroke-width="4"/>
   <!-- Crescent (moon) cut using a lighter arc overlay -->
   <path d="M168 48c-22 10-38 33-38 60s16 50 38 60c-8 3-17 5-26 5-38 0-68-30-68-68s30-68 68-68c9 0 18 2 26 5z" fill="#121212"/>
-  <!-- Pentagons/hex hints (very subtle) -->
-  <g stroke="#3A3A3A" stroke-width="3" opacity="0.6">
-    <path d="M128 72l22 16-8 26h-28l-8-26 22-16z" fill="#111"/>
-    <path d="M150 88l28 2 10 24-20 20-24-8 6-38z"/>
-    <path d="M106 88l-28 2-10 24 20 20 24-8-6-38z"/>
-    <path d="M96 134l-18 22 18 26 26-8-6-32-20-8z"/>
-    <path d="M160 134l18 22-18 26-26-8 6-32 20-8z"/>
+  <!-- Geometric pentagon cluster (shared edges) -->
+  <g stroke="#3A3A3A" stroke-width="3" fill="#0D0D0D" opacity="0.85">
+    <!-- center -->
+    <polygon points="128,106 144,118 138,138 118,138 112,118" />
+    <!-- top-right (shares edge 144,118 - 138,138) -->
+    <polygon points="144,118 162,112 174,128 158,142 138,138" />
+    <!-- top-left (shares edge 112,118 - 118,138) -->
+    <polygon points="112,118 94,112 82,128 98,142 118,138" />
+    <!-- bottom (shares edge 118,138 - 138,138) -->
+    <polygon points="118,138 138,138 132,156 124,156 112,150" />
+    <!-- right (shares vertex 138,138) -->
+    <polygon points="138,138 158,142 160,162 142,170 132,156" />
   </g>
   <!-- Subtle inner glow ring -->
   <circle cx="128" cy="128" r="100" stroke="#FACC15" stroke-opacity="0.35" stroke-width="2"/>
