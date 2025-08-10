@@ -28,11 +28,15 @@ export async function GET(request: Request) {
     const stripe = new stripeMod.default(secretKey, { apiVersion: '2023-10-16' })
     const session = await stripe.checkout.sessions.retrieve(sessionId)
     const paid = session.payment_status === 'paid' || session.status === 'complete'
-    const res = NextResponse.json({ ok: paid, token: paid ? generateLicense() : undefined })
+    const license = paid ? generateLicense() : undefined
+    const res = NextResponse.json({ ok: paid, token: license })
     if (paid) {
       const oneYear = 60 * 60 * 24 * 365
       const proto = request.headers.get('x-forwarded-proto') || 'https'
       res.cookies.set('otm_paid', '1', { httpOnly: true, sameSite: 'lax', maxAge: oneYear, path: '/', secure: proto === 'https' })
+      if (license) {
+        res.cookies.set('otm_lic', license, { httpOnly: true, sameSite: 'lax', maxAge: oneYear, path: '/', secure: proto === 'https' })
+      }
     }
     return res
   } catch (e) {
