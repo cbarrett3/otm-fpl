@@ -83,14 +83,21 @@ export default function Home() {
         <section className="mx-auto mt-10 max-w-5xl">
           <motion.div className="border-y border-white/10 py-3" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
             <div className="flex flex-wrap items-center justify-center gap-4 text-[12px] uppercase tracking-wide text-white/70">
-              {['Smart pairs', 'Predicted GW1', 'Fantrax CSV', 'Share/Sync', 'No Accounts', 'Fast on mobile'].map((t, i) => (
-                <motion.span
+              {[
+                ['Smart pairs', '/compare'],
+                ['Predicted GW1', '/predicted'],
+                ['Fantrax CSV', '/guides/fantrax-export'],
+                ['Share/Sync', '/rankings'],
+                ['No Accounts', '/privacy'],
+                ['Fast on mobile', '/'],
+              ].map(([t, href], i) => (
+                <motion.a href={href}
                   key={i}
                   whileHover={{ y: -1 }}
                   className="relative cursor-pointer hover:text-yellow-300 after:absolute after:left-0 after:right-0 after:-bottom-0.5 after:h-[1px] after:bg-yellow-400/70 after:scale-x-0 hover:after:scale-x-100 after:origin-left after:transition-transform"
                 >
                   {t}
-                </motion.span>
+                </motion.a>
               ))}
             </div>
           </motion.div>
