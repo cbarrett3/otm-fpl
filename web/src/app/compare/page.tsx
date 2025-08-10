@@ -559,11 +559,13 @@ export default function ComparePage() {
           <Button variant="ghost" className="h-8 px-3" aria-label="View your rankings" onClick={() => router.push('/rankings')}>
             View Rankings
           </Button>
-          <div className="hidden md:flex items-center gap-3 ml-2">
-            <RestoreLicense />
-            <span className="text-white/30">·</span>
-            <CopyLicenseButton />
-          </div>
+          {isPaidEnv ? (
+            <div className="hidden md:flex items-center gap-3 ml-2">
+              <RestoreLicense />
+              <span className="text-white/30">·</span>
+              <CopyLicenseButton />
+            </div>
+          ) : null}
         </div>
       </div>
       {/* Desktop filters row (full width, larger chips, not under nav) */}
