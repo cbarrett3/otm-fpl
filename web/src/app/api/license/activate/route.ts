@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   if (!rateLimit(ip)) return NextResponse.json({ ok: false, error: 'rate_limited' }, { status: 429 })
 
   const secrets = getSecrets()
-  if (!secrets.length || !token) return NextResponse.json({ ok: false }, { status: 400 })
+  if (!secrets.length || !token) return NextResponse.json({ ok: false, error: 'bad_request' }, { status: 400 })
   const valid = verifyToken(token)
   const res = NextResponse.json({ ok: valid })
   if (valid) {

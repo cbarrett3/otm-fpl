@@ -19,10 +19,10 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('session_id')
-    if (!sessionId) return NextResponse.json({ ok: false }, { status: 400 })
+    if (!sessionId) return NextResponse.json({ ok: false, error: 'missing_session_id' }, { status: 400 })
 
     const secretKey = process.env.STRIPE_SECRET_KEY
-    if (!secretKey) return NextResponse.json({ ok: false }, { status: 500 })
+    if (!secretKey) return NextResponse.json({ ok: false, error: 'missing_stripe_secret' }, { status: 500 })
 
     const stripeMod = await import('stripe')
     const stripe = new stripeMod.default(secretKey, { apiVersion: '2023-10-16' })
@@ -35,8 +35,10 @@ export async function GET(request: Request) {
       res.cookies.set('otm_paid', '1', { httpOnly: true, sameSite: 'lax', maxAge: oneYear, path: '/', secure: proto === 'https' })
     }
     return res
-  } catch {
-    return NextResponse.json({ ok: false }, { status: 500 })
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || 'verify_failed'
+    console.error('[verify] failed', { message: msg })
+    return NextResponse.json({ ok: false, error: 'verify_failed' }, { status: 500 })
   }
 }
 

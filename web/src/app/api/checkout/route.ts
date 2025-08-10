@@ -24,12 +24,15 @@ export async function POST(request: Request) {
 
     const secretKey = process.env.STRIPE_SECRET_KEY
     const priceId = process.env.STRIPE_PRICE_ID
-    if (!secretKey || !priceId) {
-      return NextResponse.json({ error: 'Stripe is not configured', hasSecret: Boolean(secretKey), hasPrice: Boolean(priceId) }, { status: 500 })
+    const hasSecret = Boolean(secretKey)
+    const hasPrice = Boolean(priceId)
+    if (!hasSecret || !hasPrice) {
+      console.error('[checkout] missing config', { hasSecret, hasPrice })
+      return NextResponse.json({ error: 'stripe_config', hasSecret, hasPrice }, { status: 500 })
     }
     // defer import to keep cold-start smaller
     const stripeMod = await import('stripe')
-    const stripe = new stripeMod.default(secretKey, { apiVersion: '2023-10-16' })
+    const stripe = new stripeMod.default(secretKey as string, { apiVersion: '2023-10-16' })
 
     // derive base URL
     const headers = new Headers(request.headers)
@@ -47,6 +50,7 @@ export async function POST(request: Request) {
       return hosts.has(host) || Array.from(hosts).some((h) => host.startsWith(`${h}:`))
     })()
     if (!okHost) {
+      console.error('[checkout] invalid_host', { host, allowedHost })
       return NextResponse.json({ error: 'invalid_host', host, allowedHost }, { status: 403 })
     }
 
@@ -61,8 +65,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: session.url })
   } catch (err: unknown) {
     const msg = (err as { message?: string })?.message || 'Failed to create session'
-    // Only include detailed message in non-production
-    const body = process.env.NODE_ENV === 'production' ? { error: 'Failed to create session' } : { error: msg }
+    console.error('[checkout] create_failed', { message: msg })
+    const body = process.env.NODE_ENV === 'production'
+      ? { error: 'create_failed' }
+      : { error: 'create_failed', message: msg }
     return NextResponse.json(body, { status: 500 })
   }
 }
