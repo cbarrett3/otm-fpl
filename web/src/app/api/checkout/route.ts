@@ -38,7 +38,10 @@ export async function POST(request: Request) {
     const headers = new Headers(request.headers)
     const host = getHost(headers)
     const proto = headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${proto}://${host}`
+    const rawBase = process.env.NEXT_PUBLIC_BASE_URL || `${proto}://${host}`
+    // ensure scheme is present and strip trailing slash
+    const baseUrl = (/^https?:\/\//i.test(rawBase) ? rawBase : `https://${rawBase}`).replace(/\/$/, '')
+    console.log('[checkout] baseUrl', { baseUrl, host, proto })
 
     // Enforce allowed host if set
     const allowedHost = process.env.NEXT_PUBLIC_PAID_HOST
