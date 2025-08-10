@@ -39,7 +39,14 @@ export async function POST(request: Request) {
 
     // Enforce allowed host if set
     const allowedHost = process.env.NEXT_PUBLIC_PAID_HOST
-    if (allowedHost && !(host === allowedHost || host.startsWith(`${allowedHost}:`))) {
+    const okHost = (() => {
+      if (!allowedHost) return true
+      const list = allowedHost.split(',').map((s) => s.trim()).filter(Boolean)
+      const hosts = new Set<string>()
+      for (const h of list) { hosts.add(h); hosts.add(h.replace(/^www\./,'')); hosts.add(h.startsWith('www.')? h.slice(4) : `www.${h}`) }
+      return hosts.has(host) || Array.from(hosts).some((h) => host.startsWith(`${h}:`))
+    })()
+    if (!okHost) {
       return NextResponse.json({ error: 'invalid_host', host, allowedHost }, { status: 403 })
     }
 

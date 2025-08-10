@@ -270,9 +270,21 @@ export default function ComparePage() {
     return v ? Number(v) || 0 : 0
   })
   const paidAllowedHost = process.env.NEXT_PUBLIC_PAID_HOST || ''
+  function hostMatches(allowed: string, host: string): boolean {
+    if (!allowed) return true
+    const list = allowed.split(',').map((s) => s.trim()).filter(Boolean)
+    const candidates = new Set<string>()
+    for (const h of list) {
+      candidates.add(h)
+      candidates.add(h.replace(/^www\./, ''))
+      candidates.add(h.startsWith('www.') ? h.slice(4) : `www.${h}`)
+    }
+    return candidates.has(host)
+  }
   const [isPaid, setIsPaid] = useState<boolean>(false)
   const isPaidEnv = React.useMemo(() => {
-    const hostOk = paidAllowedHost ? (typeof window !== 'undefined' && window.location.hostname === paidAllowedHost) : true
+    const host = typeof window !== 'undefined' ? window.location.hostname : ''
+    const hostOk = paidAllowedHost ? hostMatches(paidAllowedHost, host) : true
     return paidMode && hostOk
   }, [paidMode, paidAllowedHost])
 

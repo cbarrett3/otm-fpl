@@ -7,8 +7,14 @@ export async function GET(request: Request) {
     // Optional host enforcement
     const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || ''
     const allowedHost = process.env.NEXT_PUBLIC_PAID_HOST
-    if (allowedHost && !(host === allowedHost || host.startsWith(`${allowedHost}:`))) {
-      return NextResponse.json({ ok: false, error: 'invalid_host', host, allowedHost }, { status: 403 })
+    if (allowedHost) {
+      const list = allowedHost.split(',').map((s) => s.trim()).filter(Boolean)
+      const hosts = new Set<string>()
+      for (const h of list) { hosts.add(h); hosts.add(h.replace(/^www\./,'')); hosts.add(h.startsWith('www.')? h.slice(4) : `www.${h}`) }
+      const ok = hosts.has(host) || Array.from(hosts).some((h) => host.startsWith(`${h}:`))
+      if (!ok) {
+        return NextResponse.json({ ok: false, error: 'invalid_host', host, allowedHost }, { status: 403 })
+      }
     }
 
     const { searchParams } = new URL(request.url)
