@@ -39,9 +39,10 @@ export default function Home() {
               transition={{ delay: 0.15, duration: 0.45 }}
             >
               <span className="block text-[11vw] sm:text-6xl md:text-7xl bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-300 bg-clip-text text-transparent drop-shadow-[0_6px_20px_rgba(250,204,21,0.25)]">
-                FPL Draftkit
+                OTM FPL Draftkit
               </span>
             </motion.h1>
+            <div className="mt-1 text-sm text-white/60">Season 2025/26</div>
           </div>
           <motion.p
             className="text-black/70 dark:text-white/70 mt-3 max-w-xl sm:max-w-2xl"

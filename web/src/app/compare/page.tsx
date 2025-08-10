@@ -397,8 +397,8 @@ export default function ComparePage() {
   }
 
   const onPick = (winner: AppPlayer, loser: AppPlayer) => {
-    // If paid mode is enabled and we are on the designated host, limit free picks to 25
-    if (isPaidEnv && !isPaid && picksCount >= 25) {
+    // If paid mode is enabled and we are on the designated host, limit free picks to 5
+    if (isPaidEnv && !isPaid && picksCount >= 5) {
       console.log('[Paywall] Triggering paywall at picksCount=', picksCount)
       setPaywallOpen(true)
       return

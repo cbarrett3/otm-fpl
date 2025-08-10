@@ -63,7 +63,7 @@ export function PaywallDialog({ open, onClose, onUnlock }: Props): React.ReactEl
                 <span className="text-yellow-400">Unlock Draftkit</span>
               </div>
               <p className="text-sm text-white/75 mb-4">
-                Free preview reached (25 picks). Unlock the full Draftkit for <span className="text-yellow-300 font-semibold">$4.99</span> to continue.
+                Free preview reached (5 picks). Unlock the full Draftkit for <span className="text-yellow-300 font-semibold">$4.99</span> to continue.
               </p>
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <Button className="h-9 px-4" onClick={handleUnlock} disabled={loading}>{loading ? 'Loading…' : 'Unlock $4.99'}</Button>
