@@ -31,7 +31,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white relative`}>
+        {/* Subtle stadium/noise background */}
+        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+          <div className="absolute inset-0 bg-[radial-gradient(1200px_600px_at_50%_-200px,rgba(234,179,8,0.06),transparent)]" />
+          <div className="absolute inset-0 bg-[url('/bg/pl-stadium-noise.webp')] bg-center bg-cover opacity-20" />
+        </div>
         {/* Preload app bundle in the background for faster route changes */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function(){

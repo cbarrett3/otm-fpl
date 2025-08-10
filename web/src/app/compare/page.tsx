@@ -6,11 +6,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 // removed button usage for card click selection
 import { ImageWithFallback } from '@/components/ui/image-with-fallback'
 import { Button } from '@/components/ui/button'
+import { RestoreLicense } from '@/components/ui/restore-license'
+import { CopyLicenseButton } from '@/components/ui/copy-license'
+import { PaywallDialog } from '@/components/ui/paywall-dialog'
+import { FormationMini } from '@/components/ui/formation-mini'
 import type { AppBundle, AppPlayer } from '@/lib/types'
 import { getBundle } from '@/lib/bundle-store'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useFeature } from '@/lib/feature-flags'
 // brand removed per request – simple wordmark instead
 import LZString from 'lz-string'
 
@@ -259,6 +264,36 @@ export default function ComparePage() {
   const [choosingId, setChoosingId] = useState<number | null>(null)
   const [mobileVideoOpenId, setMobileVideoOpenId] = useState<number | null>(null)
   const [mobileVideoById, setMobileVideoById] = useState<Record<number, string>>({})
+  const paidMode = useFeature('PAID_VERSION')
+  const [picksCount, setPicksCount] = useState<number>(() => {
+    const v = typeof window !== 'undefined' ? window.localStorage.getItem('otm_picks_count') : null
+    return v ? Number(v) || 0 : 0
+  })
+  const paidAllowedHost = process.env.NEXT_PUBLIC_PAID_HOST || ''
+  const [isPaid, setIsPaid] = useState<boolean>(false)
+  const isPaidEnv = React.useMemo(() => {
+    const hostOk = paidAllowedHost ? (typeof window !== 'undefined' && window.location.hostname === paidAllowedHost) : true
+    return paidMode && hostOk
+  }, [paidMode, paidAllowedHost])
+
+  useEffect(() => {
+    fetch('/api/me').then((r) => r.json()).then((d) => setIsPaid(Boolean(d?.paid))).catch(() => {})
+  }, [])
+  const [paywallOpen, setPaywallOpen] = useState(false)
+
+  // Debug logs for paywall state
+  useEffect(() => {
+    try {
+      console.log('[Paywall]', {
+        paidMode,
+        paidAllowedHost,
+        hostname: typeof window !== 'undefined' ? window.location.hostname : 'n/a',
+        isPaidEnv,
+        isPaid,
+        picksCount,
+      })
+    } catch {}
+  }, [paidMode, paidAllowedHost, isPaidEnv, isPaid, picksCount])
 
   useEffect(() => {
     getBundle().then(setBundle).catch(console.error)
@@ -350,8 +385,21 @@ export default function ComparePage() {
   }
 
   const onPick = (winner: AppPlayer, loser: AppPlayer) => {
+    // If paid mode is enabled and we are on the designated host, limit free picks to 25
+    if (isPaidEnv && !isPaid && picksCount >= 25) {
+      console.log('[Paywall] Triggering paywall at picksCount=', picksCount)
+      setPaywallOpen(true)
+      return
+    }
     const nextOrder = updateRanking(ranking.order, winner.id, loser.id)
     setRankCookie(JSON.stringify({ order: nextOrder }))
+    // Increment pick counter for paid gating
+    if (isPaidEnv && !isPaid) {
+      const next = picksCount + 1
+      setPicksCount(next)
+      try { localStorage.setItem('otm_picks_count', String(next)) } catch {}
+      console.log('[Paywall] Increment picksCount →', next)
+    }
     // advance pair
     if (bundle) {
       // rotate focus round to ensure coverage across first 10 rounds
@@ -499,6 +547,11 @@ export default function ComparePage() {
           <Button variant="ghost" className="h-8 px-3" aria-label="View your rankings" onClick={() => router.push('/rankings')}>
             View Rankings
           </Button>
+          <div className="hidden md:flex items-center gap-3 ml-2">
+            <RestoreLicense />
+            <span className="text-white/30">·</span>
+            <CopyLicenseButton />
+          </div>
         </div>
       </div>
       {/* Desktop filters row (full width, larger chips, not under nav) */}
@@ -703,6 +756,17 @@ export default function ComparePage() {
                 return <span>{form ? `Formation ${form}` : ''}{form && slot ? ' • ' : ''}{slot ? `Role ${slot}` : ''}</span>
               })()}
             </div>
+            {/* Formation mini-map */}
+            {p.predictedGW1 === true ? (
+              <div className="mt-2 hidden md:block">
+                {(() => {
+                  const form = getFormationString(p.team.id)
+                  const role = getRowSlot(p)
+                  if (!form || !role) return null
+                  return <FormationMini formation={form} playerPosition={p.position as 'GKP'|'DEF'|'MID'|'FWD'} role={role} aspectRatio="5 / 2" />
+                })()}
+              </div>
+            ) : null}
             <div className="mt-1 text-xs relative z-20">
               Predicted GW1 XI: {p.predictedGW1 === true ? (
                 <motion.span
@@ -750,6 +814,17 @@ export default function ComparePage() {
                 </span>
               ) : null}
             </div>
+            {/* Mobile compact formation */}
+            {p.predictedGW1 === true ? (
+              <div className="mt-2 md:hidden">
+                {(() => {
+                  const form = getFormationString(p.team.id)
+                  const role = getRowSlot(p)
+                  if (!form || !role) return null
+                  return <FormationMini formation={form} playerPosition={p.position as 'GKP'|'DEF'|'MID'|'FWD'} role={role} aspectRatio="7 / 3" />
+                })()}
+              </div>
+            ) : null}
             {/* Hide highlights and fixture details on mobile to fit two cards */}
             {(() => { const vid = p.highlight?.videoId ?? mobileVideoById[p.id]; return vid ? (
               <>
@@ -775,6 +850,18 @@ export default function ComparePage() {
           </motion.div>
         ))}
       </div>
+      <PaywallDialog
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        onUnlock={async () => {
+          const res = await fetch('/api/checkout', { method: 'POST' })
+          const data = await res.json()
+          if (!res.ok || !data?.url) {
+            throw new Error(data?.error || 'Checkout unavailable')
+          }
+          window.location.href = data.url as string
+        }}
+      />
       {/* Mobile filters modal */}
       {filtersOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

@@ -34,3 +34,21 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Environment template
+
+Create a `.env.local` file in this `web/` folder using the template below:
+
+```
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_PAID_HOST=localhost
+NEXT_PUBLIC_FLAG_PAID_VERSION=1
+
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PRICE_ID=price_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# License token signing (use LICENSE_SECRETS for rotation; first is active)
+LICENSE_SECRETS=replace-with-long-random-secret
+```
+
